@@ -259,6 +259,11 @@ namespace AssetImport
 
         internal void LoadCoordinate(ChaFileCoordinate coordinate)
         {
+            if (KKAPI.Maker.MakerAPI.InsideAndLoaded)
+            {
+                if (GameObject.Find("cosFileControl")?.GetComponentInChildren<ChaCustom.CustomFileWindow>()?.tglCoordeLoadAcs.isOn == false) return;
+            }
+
             int cSet = ChaControl.fileStatus.coordinateType;
             coordinateCardNames[cSet] = coordinate.coordinateFileName.Replace(".png", "");
             characterCardName = ChaControl.chaFile.charaFileName == null ? "MakerDefault" : ChaControl.chaFile.charaFileName;
@@ -329,7 +334,7 @@ namespace AssetImport
                 Asset asset = loadedObjects[cSet][slot];
                 // import asset
                 AccessoryHelper accessory = new AccessoryHelper(ChaControl, ChaControl.GetAccessoryComponent(asset.identifier), asset.identifier);
-                if (accessory == null)
+                if (accessory.accessory == null)
                 {
                     Logger.LogWarning($"Accessory in slot {asset.identifier} was null");
                     continue;
