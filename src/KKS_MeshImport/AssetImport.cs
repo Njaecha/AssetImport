@@ -28,11 +28,12 @@ namespace AssetImport
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "1.0.2";
+        public const string Version = "1.1.0";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;
         internal static AssetUI UI;
+        internal static AssetImport instance;
 
         // Config
         internal static ConfigEntry<KeyboardShortcut> hotkey;
@@ -63,6 +64,8 @@ namespace AssetImport
             KKAPI.Maker.AccessoriesApi.AccessoryKindChanged += AccessoryKindChanged;
             KKAPI.Maker.AccessoriesApi.AccessoriesCopied += AccessoryCopied;
             KKAPI.Maker.AccessoriesApi.AccessoryTransferred += AccessoryTransferred;
+
+            instance = this;
         }
 
         private void AccessoryTransferred(object sender, KKAPI.Maker.AccessoryTransferEventArgs e)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.UI;
 using BepInEx;
 using IllusionUtility.GetUtility;
 using BepInEx.Logging;
@@ -19,6 +20,7 @@ using LitJson;
 using Main = AssetImport.AssetImport;
 using System.Collections;
 using System.Text.RegularExpressions;
+using BepInEx.Bootstrap;
 
 namespace AssetImport
 {
@@ -34,6 +36,16 @@ namespace AssetImport
 
         internal Dictionary<int, string> coordinateCardNames = new Dictionary<int, string>();
         internal string characterCardName;
+
+        // used to transfer plugin data from Coordinate Load Options temp character to the real characters.
+        private static PluginData cloTransferPluginData;
+
+        internal IEnumerator removeCloTransferPluginData()
+        {
+            yield return null;
+            yield return null;
+            cloTransferPluginData = null;
+        }
 
         protected override void Start()
         {
@@ -259,8 +271,54 @@ namespace AssetImport
 
         internal void LoadCoordinate(ChaFileCoordinate coordinate)
         {
+            // CoordinateLoadOption compatibilty
+            // check if Coordinate Load Option is installed
+            bool cMode = false;
+            List<int> cloImportAccessories = new List<int>();
+            if (Chainloader.PluginInfos.ContainsKey("com.jim60105.kks.coordinateloadoption"))
+            {
+                Logger.LogDebug("Coordinate Load Option dedected");
+                if (GameObject.Find("CoordinateTooglePanel")?.activeInHierarchy == true)
+                {
+                    Logger.LogDebug("Coordinate Load Option enabled");
+                    bool? accEnabled = GameObject.Find("CoordinateTooglePanel/accessories")?.GetComponent<Toggle>()?.isOn;
+                    if (accEnabled == true)
+                    {
+                        Logger.LogDebug("Coordinate Load Option accessory load enabled, entering compatibility mode");
+                        cMode = true;
+
+                        if (GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/BtnChangeAccLoadMode")?.GetComponentInChildren<Text>()?.text != "Replace Mode")
+                        {
+                            Logger.LogMessage("Asset Import WARNING: Add Mode is not supported! Stopping asset load");
+                            return;
+                        }
+
+                        GameObject list = GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/scroll/Viewport/Content");
+                        for(int i = 0; i < list.transform.childCount; i++)
+                        {
+                            GameObject item = list.transform.GetChild(i).gameObject;
+                            bool? isOn = item.GetComponent<Toggle>()?.isOn;
+                            bool isEmpty = item.transform.Find("Label")?.gameObject.GetComponent<Text>()?.text == "Empty";
+
+                            if (isOn == true && !isEmpty)
+                            {
+                                cloImportAccessories.Add(i);
+                            }
+                        }
+
+                    }
+                    else if (accEnabled == false)
+                    {
+                        Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
+                        return;
+                    }
+                }
+            }
+
+            // Maker partial coordinate load fix
             if (KKAPI.Maker.MakerAPI.InsideAndLoaded)
             {
+                // return if no new accessories are being loaded
                 if (GameObject.Find("cosFileControl")?.GetComponentInChildren<ChaCustom.CustomFileWindow>()?.tglCoordeLoadAcs.isOn == false) return;
             }
 
@@ -269,11 +327,39 @@ namespace AssetImport
             characterCardName = ChaControl.chaFile.charaFileName == null ? "MakerDefault" : ChaControl.chaFile.charaFileName;
 
             Logger.LogDebug("Coordinate Load Started");
-            if (loadedObjects.ContainsKey(cSet))
+            if (loadedObjects.ContainsKey(cSet) && !cMode)
             {
                 loadedObjects.Clear();
             }
-            PluginData data = GetCoordinateExtendedData(coordinate);
+            // free slots for loaded accessories while keeping those that should persist
+            else if (loadedObjects.ContainsKey(cSet))
+            {
+                foreach(int slot in cloImportAccessories)
+                {
+                    if (loadedObjects[cSet].ContainsKey(slot))
+                    {
+                        loadedObjects[cSet].Remove(slot);
+                    }
+                }
+            }
+
+            
+            PluginData data = null;
+            if (cMode) // grab transfer plugindata if exists
+            {
+                if (cloTransferPluginData != null) data = cloTransferPluginData;
+                else
+                {
+                    data = cloTransferPluginData = GetCoordinateExtendedData(coordinate);
+                    if (data != null)
+                    {
+                        // remove transfer plugindata after load is finished; Coroutine cannot be started on *this* as it's being destroyed by clo too early
+                        Main.instance.StartCoroutine(removeCloTransferPluginData());
+                    }
+                }
+            }
+            else data = GetCoordinateExtendedData(coordinate);
+
             if (data == null) return;
             byte version = 0;
             if (data.data.TryGetValue("Version", out var versionS) && versionS != null)
@@ -319,7 +405,16 @@ namespace AssetImport
                 foreach (Asset asset in assets)
                 {
                     if (!loadedObjects.ContainsKey(cSet)) loadedObjects[cSet] = new Dictionary<int, Asset>();
+
+                    // ignore Asset Data of accessories that are not being loaded
+                    if (cMode && !cloImportAccessories.Contains(asset.identifier))
+                    {
+                        Logger.LogDebug($"Compatibilty Mode: Accessory in slot {asset.identifier} is not being loaded -> discarding data.");
+                        continue;
+                    }
+
                     loadedObjects[cSet][asset.identifier] = asset;
+                    Logger.LogDebug($"Loading dat of asset for accessory in slot {asset.identifier}");
                 }
             }
         }
