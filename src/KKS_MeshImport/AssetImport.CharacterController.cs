@@ -546,9 +546,9 @@ namespace AssetImport
                 DestroyImmediate(bone);
             }
 
+            // dynamic bones
             if (import.hasBones)
             {
-                // dynamic bones
                 int dBones = 0;
                 foreach (BoneNode node in import.boneNodes)
                 {

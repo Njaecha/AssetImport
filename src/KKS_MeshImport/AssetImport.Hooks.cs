@@ -17,6 +17,8 @@ namespace AssetImport
 {
     class Hooks
     {
+        private static bool isItAClothStateChangeEvent = false;
+
         [HarmonyPostfix, HarmonyPatch(typeof(Studio.SceneInfo), nameof(Studio.SceneInfo.Load), new Type[]{typeof(string)})]
         private static void SceneLoadHook(string _path)
         {
@@ -42,10 +44,48 @@ namespace AssetImport
             __instance?.ChaControl?.gameObject.GetComponentInChildren<AssetCharaController>()?.LoadCoordinate(coordinate);
         }
 
-        [HarmonyPrefix, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "CorrectTongue")]
-        private static void MaterialEditorLoadDataHook(KK_Plugins.MaterialEditor.MaterialEditorCharaController __instance)
+        public static void MaterialEditorLoadDataTranspilerContinuer(ChaControl chaControl, bool accessories)
         {
-            __instance?.ChaControl?.gameObject.GetComponentInChildren<AssetCharaController>()?.LoadData();
+            if (accessories) // do not reload accessories if they wont updates by ME
+            {
+                chaControl?.gameObject.GetComponent<AssetCharaController>()?.LoadData();
+            }
+        }
+
+        [HarmonyTranspiler, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "LoadData", MethodType.Enumerator)]
+        static IEnumerable<CodeInstruction> MaterialEditorLoadDataTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var code = new List<CodeInstruction>(instructions);
+            object accessoriesLdfldOperant = null;
+            object thisLdfldOperant = null;
+
+            foreach(CodeInstruction c in code)
+            {
+                if (c == null) continue;
+                if (c.operand == null) continue;
+                if  (c.operand.ToString().Equals("System.Boolean accessories"))
+                {
+                    accessoriesLdfldOperant = c.operand;
+                }
+                if (c.operand.ToString().Contains("__this"))
+                {
+                    thisLdfldOperant = c.operand;
+                }
+            }
+
+            CodeMatcher cm = new CodeMatcher(instructions, generator);
+            cm.MatchForward(false, new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "CorrectTongue")));
+            cm.Advance(-2);
+            cm.InsertAndAdvance(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(KKAPI.Chara.CharaCustomFunctionController), nameof(KKAPI.Chara.CharaCustomFunctionController.ChaControl))),
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldfld, accessoriesLdfldOperant),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Hooks), nameof(MaterialEditorLoadDataTranspilerContinuer))),
+                new CodeInstruction(OpCodes.Nop)
+                );
+
+            return cm.Instructions();
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "OnReload")]
