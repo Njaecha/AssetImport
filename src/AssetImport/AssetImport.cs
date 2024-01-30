@@ -1,13 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using IllusionUtility.GetUtility;
-using Manager;
-using Studio;
-using Studio.Sound;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using BepInEx;
 using BepInEx.Logging;
@@ -16,7 +7,6 @@ using KKAPI;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Chara;
 using HarmonyLib;
-using KKAPI.Maker;
 
 namespace AssetImport
 {
@@ -28,7 +18,7 @@ namespace AssetImport
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "1.1.1";
+        public const string Version = "2.0.0";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;

@@ -1,24 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using HarmonyLib;
 using KKAPI;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using Studio;
-using UnityEngine;
-using HSPE;
 using System.Reflection.Emit;
 
 namespace AssetImport
 {
     class Hooks
     {
-        private static bool isItAClothStateChangeEvent = false;
-
         [HarmonyPostfix, HarmonyPatch(typeof(Studio.SceneInfo), nameof(Studio.SceneInfo.Load), new Type[]{typeof(string)})]
         private static void SceneLoadHook(string _path)
         {
@@ -46,7 +38,7 @@ namespace AssetImport
 
         public static void MaterialEditorLoadDataTranspilerContinuer(ChaControl chaControl, bool accessories)
         {
-            if (accessories) // do not reload accessories if they wont updates by ME
+            if (accessories) // do not reload accessories if they wont be updated by ME
             {
                 chaControl?.gameObject.GetComponent<AssetCharaController>()?.LoadData();
             }
@@ -93,5 +85,7 @@ namespace AssetImport
         {
             __instance?.ChaControl?.gameObject.GetComponentInChildren<AssetCharaController>()?.LoadCharacter(currentGameMode, maintainState);
         }
+
+
     }
 }

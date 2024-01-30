@@ -1,23 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
-using IllusionUtility.GetUtility;
-using BepInEx;
-using BepInEx.Logging;
-using KKAPI;
-using Studio;
-using KKAPI.Studio.SaveLoad;
-using KKAPI.Utilities;
-using ExtensibleSaveFormat;
-using MessagePack;
 using System.IO;
-using System.Xml;
 using LitJson;
-using HSPE;
-using HSPE.AMModules;
-using MaterialEditorAPI;
 using Main = AssetImport.AssetImport;
 
 
@@ -33,6 +17,10 @@ namespace AssetImport
             string cacheFilePath = cache + Path.GetFileName(sourcePath);
             if (sourcePath != cacheFilePath)
             {
+                if (File.Exists(cacheFilePath))
+                {
+                    Main.Logger.LogDebug($"[{Path.GetFileName(sourcePath)}] already exists in cache, and will be overwritten.");
+                }
                 File.Copy(sourcePath, cacheFilePath, true);
                 if (sourcePath.EndsWith(".gltf"))
                 {
@@ -58,7 +46,6 @@ namespace AssetImport
             if (Directory.Exists("./UserData/AssetImport/cache")) Directory.Delete("./UserData/AssetImport/cache", true);
             Directory.CreateDirectory("./UserData/AssetImport/cache");
         }
-
         internal static string copyFile(string sourceCache, string destinationCache, string fileName)
         {
             AssetImport.Logger.LogInfo($"copy file {fileName} from {sourceCache} to {destinationCache}");
@@ -67,15 +54,52 @@ namespace AssetImport
                 if (!Directory.Exists(destinationCache)) Directory.CreateDirectory(destinationCache);
                 string copyName = fileName;
                 int num = 1;
-                while (File.Exists(destinationCache + copyName)) 
+                if (File.Exists(destinationCache + fileName) && FilesEqual(new FileInfo(sourceCache + fileName), new FileInfo(destinationCache + fileName)))
                 {
-                    copyName = $"{Path.GetFileNameWithoutExtension(sourceCache + fileName)}_Copy{num}{Path.GetExtension(sourceCache + fileName)}";
-                    num++;
+                    return copyName;
                 }
-                File.Copy(sourceCache + fileName, destinationCache + copyName, true);
-                return copyName;
+                else
+                {
+                    while (File.Exists(destinationCache + copyName))
+                    {
+                        copyName = $"{Path.GetFileNameWithoutExtension(sourceCache + fileName)}_Copy{num}{Path.GetExtension(sourceCache + fileName)}";
+                        num++;
+                    }
+                    File.Copy(sourceCache + fileName, destinationCache + copyName, true);
+                    return copyName;
+                }
             }
             return null;
+        }
+
+        // thanks https://stackoverflow.com/questions/1358510/how-to-compare-2-files-fast-using-net
+        private static bool FilesEqual(FileInfo first, FileInfo second)
+        {
+            if (first.Length != second.Length)
+                return false;
+
+            if (string.Equals(first.FullName, second.FullName, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            int iterations = (int)Math.Ceiling((double)first.Length / sizeof(Int64));
+
+            using (FileStream fs1 = first.OpenRead())
+            using (FileStream fs2 = second.OpenRead())
+            {
+                byte[] one = new byte[sizeof(Int64)];
+                byte[] two = new byte[sizeof(Int64)];
+
+                for (int i = 0; i < iterations; i++)
+                {
+                    fs1.Read(one, 0, sizeof(Int64));
+                    fs2.Read(two, 0, sizeof(Int64));
+
+                    if (BitConverter.ToInt64(one, 0) != BitConverter.ToInt64(two, 0))
+                        return false;
+                }
+            }
+
+            return true;
         }
     }
 }

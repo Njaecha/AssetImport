@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
+﻿using System.Collections.Generic;
 using MessagePack;
-using UnityEngine;
 
 namespace AssetImport
 {
@@ -25,5 +19,9 @@ namespace AssetImport
         public float[] scale { get; set; } = new float[3];
         [Key("HasBones")]
         public bool hasBones { get; set; }
+        [Key("perRendererMaterials")]
+        public bool perRendererMaterials { get; set; } = false;
+        [Key("doFbxTranslation")]
+        public bool doFbxTranslation { get; set; } = false;
     }
 }

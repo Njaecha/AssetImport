@@ -1,12 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using IllusionUtility.GetUtility;
-using BepInEx;
 using BepInEx.Logging;
-using KKAPI;
 using Studio;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
@@ -14,9 +10,7 @@ using ExtensibleSaveFormat;
 using MessagePack;
 using System.IO;
 using System.Xml;
-using LitJson;
 using HSPE;
-using HSPE.AMModules;
 using MaterialEditorAPI;
 using Main = AssetImport.AssetImport;
 
@@ -144,7 +138,9 @@ namespace AssetImport
                     Import import = new Import(
                         getCachePath() + asset.sourceFile,
                         asset.hasBones,
-                        Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material));
+                        Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material),
+                        asset.doFbxTranslation,
+                        asset.perRendererMaterials);
                     import.Load();
                     if (import == null || !import.isLoaded)
                     {
@@ -201,7 +197,7 @@ namespace AssetImport
                 if (loadedObjects.ContainsKey(oldItem.itemInfo.dicKey))
                 {
                     Asset oldAsset = loadedObjects[oldItem.itemInfo.dicKey];
-                    Import import = new Import(getCachePath() + oldAsset.sourceFile, oldAsset.hasBones, Instantiate(newItem.objectItem.GetComponentInChildren<MeshRenderer>().material));
+                    Import import = new Import(getCachePath() + oldAsset.sourceFile, oldAsset.hasBones, Instantiate(newItem.objectItem.GetComponentInChildren<MeshRenderer>().material),oldAsset.doFbxTranslation,oldAsset.perRendererMaterials);
                     import.Load();
                     if (import == null || !import.isLoaded)
                     {
@@ -225,7 +221,7 @@ namespace AssetImport
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public void Import(string path, Vector3 scale, bool armature)
+        public void Import(string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation)
         {
             // unify path structure
             path = path.Replace("\"", "");
@@ -239,7 +235,7 @@ namespace AssetImport
             // grab a copy of the sphere's material to create the materials for the imported objects from
             Material _baseMaterial = Instantiate(_base.GetComponentInChildren<MeshRenderer>().material);
 
-            Import import = new Import(path, armature, _baseMaterial);
+            Import import = new Import(path, armature, _baseMaterial, doFbxTranslation, perRendererMaterials);
             import.Load();
             if (!import.isLoaded) return;
 
@@ -248,6 +244,12 @@ namespace AssetImport
             AssetUI.armatureMode = Main.currentLoadProcess.import.hasBones;
             AssetUI.commonPathText = import.commonPath;
             AssetUI.preloadUI = true;
+
+            DynamicBoneCollider[] colliders = Resources.FindObjectsOfTypeAll<DynamicBoneCollider>();
+            foreach(DynamicBoneCollider collider in colliders)
+            {
+                Logger.LogInfo(collider.gameObject.name);
+            }
         }
 
         /// <summary>
@@ -273,6 +275,8 @@ namespace AssetImport
             _object.transform.localPosition = Vector3.zero;
             _object.transform.localRotation = Quaternion.identity;
             _object.transform.localScale = Vector3.one;
+            if (!ociitem.visible) loadProcess.import.renderers.ForEach(rend => rend.enabled = false);
+
             // ==== OCIItem ====
 
             ociitem.arrayRender = import.renderers.ToArray();
@@ -407,6 +411,8 @@ namespace AssetImport
                 asset.identifier = ((OCIItem)loadProcess.component).itemInfo.dicKey;
                 asset.scale = new float[] { loadProcess.scale.x, loadProcess.scale.y, loadProcess.scale.z };
                 asset.hasBones = loadProcess.import.hasBones;
+                asset.perRendererMaterials = loadProcess.import.perRendererMaterials;
+                asset.doFbxTranslation = loadProcess.import.doFbxTranslation;
 
                 // copy file to cache
                 CacheUtility.toCache(getCachePath(), loadProcess.import.sourcePath);

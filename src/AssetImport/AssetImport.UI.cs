@@ -1,17 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using KKAPI;
 using KKAPI.Maker;
-using KKAPI.Studio.SaveLoad;
-using TMPro;
 using Main = AssetImport.AssetImport;
 
 namespace AssetImport
@@ -24,11 +15,13 @@ namespace AssetImport
         // UI
         // main
         internal static bool uiActive = false;
-        internal static Rect windowRect = new Rect(500, 40, 240, 140);
+        internal static Rect mainWindowRect = new Rect(500, 40, 240, 140);
         internal static string filePath = "";
         internal static int scaleSelection = 4;
         internal static float[] scales = { 10f, 5f, 2f, 1.5f, 1.0f, 0.5f, 0.1f, 0.01f, 0.001f, 0.0001f };
-        internal static bool importBones;
+        internal static bool importBones = false;
+        internal static bool perRendererMaterials = false;
+        internal static bool doFbxTranslation = false;
         internal static Dictionary<int, Import> objectKeysStudio = new Dictionary<int, Import>();
         // maker specific
         internal static int accType = 0;
@@ -49,6 +42,7 @@ namespace AssetImport
                 KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_FILEMUSTEXIST |
                 KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_LONGNAMES |
                 KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_EXPLORER;
+
 
         void Awake()
         {
@@ -76,9 +70,8 @@ namespace AssetImport
             if (!(KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)) return;
             if (uiActive)
             {
-                windowRect.height = 140;
-                windowRect = GUI.Window(33361, windowRect, WindowFunction, "Asset Import v" + Main.Version);
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(windowRect);
+                mainWindowRect = GUI.Window(33361, mainWindowRect, WindowFunction, "Asset Import v" + Main.Version);
+                KKAPI.Utilities.IMGUIUtils.EatInputInRect(mainWindowRect);
             }
             if (preloadUI)
             {
@@ -103,10 +96,12 @@ namespace AssetImport
 
         private void WindowFunction(int WindowID)
         {
-            filePath = GUI.TextField(new Rect(10, 20, 195, 20), filePath);
-            if (GUI.Button(new Rect(205, 20, 25, 20), "..."))
+            int y = 0;
+            filePath = GUI.TextField(new Rect(10, y += 20, 195, 20), filePath);
+            filePath = filePath.Replace("\\", "/");
+            filePath = filePath.Replace("\"", "");
+            if (GUI.Button(new Rect(205, y, 25, 20), "..."))
             {
-                filePath = filePath.Replace("\\", "/");
                 string dir = (filePath == "") ? Main.defaultDir.Value : filePath.Replace(filePath.Substring(filePath.LastIndexOf("/")), "");
                 string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Open 3D file", dir,
                         "3D files (*.fbx; *.dae; *.gltf;  *.blend; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd) " +
@@ -118,28 +113,40 @@ namespace AssetImport
                 }
             }
 
-            if (GUI.Button(new Rect(10, 45, 220, 25), importBones ? "☑ Import Armature" : "☐ Import Armature"))
+            if (GUI.Button(new Rect(10, y += 25, 220, 25), importBones ? "☑ Import Armature" : "☐ Import Armature"))
             {
                 importBones = !importBones;
             }
 
-            GUI.Label(new Rect(10, 75, 160, 25), $"Scaling-factor: {scales[scaleSelection]}");
+            if (GUI.Button(new Rect(10, y += 25, 220, 25), perRendererMaterials ? "☑ Material per Renderer" : "☐ Material per Renderer"))
+            {
+                perRendererMaterials = !perRendererMaterials;
+            }
+            if (Path.GetExtension(filePath).ToLower() == ".fbx")
+            {
+                if (GUI.Button(new Rect(10, y += 25, 220, 25), doFbxTranslation ? "☑ Ignore Root translation" : "☐ Ignore Root Translation"))
+                {
+                    doFbxTranslation = !doFbxTranslation;
+                }
+            }
+
+            GUI.Label(new Rect(10, y+=30, 160, 25), $"Scaling-factor: {scales[scaleSelection]}");
             if (scaleSelection == 0) GUI.enabled = false;
-            if (GUI.Button(new Rect(190, 75, 20, 20), "+"))
+            if (GUI.Button(new Rect(190, y, 20, 20), "+"))
             {
                 scaleSelection--;
             }
             //GUI.enabled = true;
             if (scaleSelection == 9) GUI.enabled = false;
-            if (GUI.Button(new Rect(210, 75, 20, 20), "-"))
+            if (GUI.Button(new Rect(210, y, 20, 20), "-"))
             {
                 scaleSelection++;
             }
             GUI.enabled = true;
-            if (GUI.Button(new Rect(10, 100, 220, 30), "Import"))
+            if (GUI.Button(new Rect(10, y+=25, 220, 30), "Import"))
             {
                 if (KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
-                    AssetImport.asc.Import(filePath, new Vector3(scales[scaleSelection], scales[scaleSelection], scales[scaleSelection]), importBones);
+                    AssetImport.asc.Import(filePath, new Vector3(scales[scaleSelection], scales[scaleSelection], scales[scaleSelection]), importBones, perRendererMaterials, doFbxTranslation);
                 else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
                 {
                     int slot = AccessoriesApi.SelectedMakerAccSlot;
@@ -153,11 +160,15 @@ namespace AssetImport
                             MakerAPI.GetCharacterControl().nowCoordinate.accessory.parts[slot].parentKey,
                             filePath,
                             new Vector3(scales[scaleSelection], scales[scaleSelection], scales[scaleSelection]),
-                            importBones);
+                            importBones,
+                            perRendererMaterials,
+                            doFbxTranslation);
                     }
                     else AssetImport.Logger.LogMessage("Please select an accessory which you want to replace!");
                 }
             }
+
+            mainWindowRect.height = y += 40;
 
             GUI.DragWindow();
         }

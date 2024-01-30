@@ -23,7 +23,10 @@ namespace AssetImport
 		private List<TexturePath> tPaths;
 		private ManualLogSource Logger;
 		private Assimp.Scene scene;
+
         private List<Material> materials;
+        private List<Mesh> meshes;
+        private List<Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>> processArmaturesLater = new List<Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>>();
 
 		public string sourcePath { get; private set; }
         public string sourceFileName { get => Path.GetFileName(sourcePath); }
@@ -39,7 +42,10 @@ namespace AssetImport
 		public bool hasTextures { get => tPaths.Count > 0; }
 		public bool isLoaded { get; private set; } = false;
 
-		public Import(string path, bool importArmature = true, Material baseMat = null)
+        public readonly bool doFbxTranslation;
+        public readonly bool perRendererMaterials;
+
+		public Import(string path, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
 		{
 			Logger = AssetImport.Logger;
 
@@ -53,7 +59,11 @@ namespace AssetImport
 			materialTextures = new Dictionary<Material, List<TexturePath>>();
 			tPaths = new List<TexturePath>();
             materials = new List<Material>();
+            meshes = new List<Mesh>();
             boneNodes = new List<BoneNode>();
+
+            this.doFbxTranslation = doFbxTranslation;
+            this.perRendererMaterials = perRendererMaterials;
 		}
 
 		private string getCommonPath()
@@ -113,6 +123,7 @@ namespace AssetImport
 			}
 
 			AssimpContext imp = new AssimpContext();
+            imp.SetConfig(new Assimp.Configs.RemoveEmptyBonesConfig(false));
 			scene = imp.ImportFile(sourcePath, PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
 			if (scene == null)
 			{
@@ -120,10 +131,11 @@ namespace AssetImport
 				return;
 			}
 
-			gameObject = buildFromNode(scene.RootNode);
-
-            processMaterials();
-            processMeshes();
+            if (!perRendererMaterials)
+                processMaterials(); // convert materials
+            processMeshes(); // convert meshes
+			gameObject = buildFromNode(scene.RootNode); // convert SceneStructure & assign meshes and materials
+            processArmatures(); // convert armature for meshes with bones
             buildBoneNodeTree(gameObject, 0, null);
             isLoaded = true;
 		}
@@ -144,33 +156,90 @@ namespace AssetImport
             uTransform.localRotation = UnityEngine.Quaternion.Euler(euler.x, euler.y, euler.z);
         }
 
+        private List<string> subobjectNameList = new List<string>();
+
+        private Material getNewMaterialWithName(string name)
+        {
+            Material material = new Material(bMat);
+            material.name = name;
+            return material;
+        }
+
 		private GameObject buildFromNode(Assimp.Node node)
 		{
             GameObject nodeObject = new GameObject(node.Name);
-			// TODO: set layer to 10 ??
 
-			convertTransfrom(node.Transform, nodeObject.transform);
+            if (!doFbxTranslation || !(node.Name.Contains("$AssimpFbx$_Translation") && scene.RootNode.Equals(node.Parent)))
+			    convertTransfrom(node.Transform, nodeObject.transform);
 
 			if (node.HasMeshes)
 			{
 				foreach(int meshIndex in node.MeshIndices)
 				{
 					Assimp.Mesh mesh = scene.Meshes[meshIndex];
-					// nameConvention to create unique name: meshName_materialName
-					GameObject subObjet = new GameObject($"{mesh.Name}_{scene.Materials[mesh.MaterialIndex].Name}");
+                    Mesh uMesh = meshes[meshIndex];
+
+                    string meshName = mesh.Name;
+                    if (meshName.IsNullOrEmpty())
+                    {
+                        if (node.Name.IsNullOrEmpty())
+                        {
+                            meshName = node.MeshIndices.Count > 1 ? $"Unnamed_{meshIndex}" : $"Unnamed";
+                        }
+                        else
+                        {
+                            meshName = node.MeshIndices.Count > 1 ? $"{node.Name}_{meshIndex}" : node.Name;
+                        }
+                    }
+                    string subobjectName;
+                    string materialName = scene.Materials[mesh.MaterialIndex].Name;
+                    if (!perRendererMaterials)
+                    {
+                        subobjectName = $"{meshName}_{materialName}";
+                    }
+                    else
+                    {
+                        subobjectName = meshName;
+                        materialName = meshName;
+                    }
+
+                    if (subobjectNameList.Contains(subobjectName))
+                    {
+                        int counter = 1;
+                        while (subobjectNameList.Contains($"{counter}_{subobjectName}"))
+                        {
+                            counter++;
+                        }
+                        subobjectName = $"{counter}_{subobjectName}";
+                    }
+                    subobjectNameList.Add(subobjectName);
+
+                    // nameConvention to create unique name: meshName_materialName
+                    GameObject subObjet = new GameObject(subobjectName);
 					subObjet.transform.SetParent(nodeObject.transform, true);
 					// set layer to 10 for koi
 					subObjet.layer = 10;
 
+                    Renderer rend;
+
 					if (mesh.HasBones && importBones)
 					{
-						renderers.Add(subObjet.AddComponent<SkinnedMeshRenderer>());
+                        rend = subObjet.AddComponent<SkinnedMeshRenderer>();
+                        ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
+
+                        processArmaturesLater.Add(new Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>(subObjet, mesh, rend as SkinnedMeshRenderer));
 					}
 					else
 					{
-						subObjet.AddComponent<MeshFilter>();
-						renderers.Add(subObjet.AddComponent<MeshRenderer>());
+                        MeshFilter mFilter = subObjet.AddComponent<MeshFilter>();
+                        mFilter.mesh = uMesh;
+						rend = subObjet.AddComponent<MeshRenderer>();
 					}
+
+                    rend.name = subobjectName;
+                    Material uMaterial = perRendererMaterials ? getNewMaterialWithName(subobjectName) : materials[mesh.MaterialIndex];
+                    rend.material = uMaterial;
+                    renderers.Add(rend);
 				}
 			}
 
@@ -291,104 +360,78 @@ namespace AssetImport
             if (!scene.HasMeshes) return;
             foreach(Assimp.Mesh mesh in scene.Meshes)
             {
-                Renderer rend = rendererFromMesh(mesh);
-                if (rend == null)
-                {
-                    continue;
-                }
-                Mesh uMesh = convertMesh(mesh);
-                // fill mesh and material on renderer
-                if (rend is SkinnedMeshRenderer)
-                {
-                    ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
-                    ((SkinnedMeshRenderer)rend).material = materials[mesh.MaterialIndex];
-                }
-                else
-                {
-                    ((MeshRenderer)rend).material = materials[mesh.MaterialIndex];
-                    MeshFilter filter = rend.gameObject.GetComponent<MeshFilter>();
-                    filter.mesh = uMesh; 
-                }
+                Logger.LogDebug($"Converting Mesh: {mesh.Name}");
+                Mesh uMesh = new Mesh();
+                List<Vector3> uVertices = new List<Vector3>();
+                List<Vector3> uNormals = new List<Vector3>();
+                List<Vector2> uUv = new List<Vector2>();
+                List<int> uIndices = new List<int>();
 
-                if (mesh.HasBones && importBones)
+                // Vertices
+                if (mesh.HasVertices)
                 {
-                    processArmature(mesh, rend as SkinnedMeshRenderer);
-                }
-            }
-        }
-
-        private Mesh convertMesh(Assimp.Mesh mesh)
-        {
-            Logger.LogDebug($"Converting Mesh: {mesh.Name}_{scene.Materials[mesh.MaterialIndex].Name}");
-            Mesh uMesh = new Mesh();
-            List<Vector3> uVertices = new List<Vector3>();
-            List<Vector3> uNormals = new List<Vector3>();
-            List<Vector2> uUv = new List<Vector2>();
-            List<int> uIndices = new List<int>();
-
-            // Vertices
-            if (mesh.HasVertices)
-            {
-                foreach (var v in mesh.Vertices)
-                {
-                    uVertices.Add(new Vector3(v.X, v.Y, v.Z));
-                }
-            }
-
-            // Normals
-            if (mesh.HasNormals)
-            {
-                foreach (var n in mesh.Normals)
-                {
-                    uNormals.Add(new Vector3(n.X, n.Y, n.Z));
-                }
-            }
-
-            // Triangles
-            if (mesh.HasFaces)
-            {
-                foreach (var f in mesh.Faces)
-                {
-                    // Ignore degenerate faces
-                    if (f.IndexCount == 1 || f.IndexCount == 2)
-                        continue;
-
-                    for (int i = 0; i < (f.IndexCount - 2); i++)
+                    foreach (var v in mesh.Vertices)
                     {
-                        uIndices.Add(f.Indices[i + 2]);
-                        uIndices.Add(f.Indices[i + 1]);
-                        uIndices.Add(f.Indices[0]);
+                        uVertices.Add(new Vector3(v.X, v.Y, v.Z));
                     }
                 }
-            }
 
-            // Uv (texture coordinate) 
-            if (mesh.HasTextureCoords(0))
-            {
-                foreach (var uv in mesh.TextureCoordinateChannels[0])
+                // Normals
+                if (mesh.HasNormals)
                 {
-                    uUv.Add(new Vector2(uv.X, uv.Y));
+                    foreach (var n in mesh.Normals)
+                    {
+                        uNormals.Add(new Vector3(n.X, n.Y, n.Z));
+                    }
                 }
-            }
 
-            if (uVertices.Count > 65000) uMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            uMesh.name = mesh.Name;
-            uMesh.vertices = uVertices.ToArray();
-            uMesh.normals = uNormals.ToArray();
-            uMesh.triangles = uIndices.ToArray();
-            uMesh.uv = uUv.ToArray();
-            return uMesh;
+                // Triangles
+                if (mesh.HasFaces)
+                {
+                    foreach (var f in mesh.Faces)
+                    {
+                        // Ignore degenerate faces
+                        if (f.IndexCount == 1 || f.IndexCount == 2)
+                            continue;
+
+                        for (int i = 0; i < (f.IndexCount - 2); i++)
+                        {
+                            uIndices.Add(f.Indices[i + 2]);
+                            uIndices.Add(f.Indices[i + 1]);
+                            uIndices.Add(f.Indices[0]);
+                        }
+                    }
+                }
+
+                // Uv (texture coordinate) 
+                if (mesh.HasTextureCoords(0))
+                {
+                    foreach (var uv in mesh.TextureCoordinateChannels[0])
+                    {
+                        uUv.Add(new Vector2(uv.X, uv.Y));
+                    }
+                }
+
+                if (uVertices.Count > 65000) uMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                uMesh.name = mesh.Name;
+                uMesh.vertices = uVertices.ToArray();
+                uMesh.normals = uNormals.ToArray();
+                uMesh.triangles = uIndices.ToArray();
+                uMesh.uv = uUv.ToArray();
+
+                meshes.Add(uMesh);
+            }
         }
 
-        private Renderer rendererFromMesh(Assimp.Mesh mesh)
+        private void processArmatures()
         {
-            string rendererName = $"{mesh.Name}_{scene.Materials[mesh.MaterialIndex].Name}";
-            foreach(Renderer rend in renderers)
+            if (!processArmaturesLater.IsNullOrEmpty())
             {
-                if (rend.name == rendererName) return rend;
+                foreach (var g in processArmaturesLater)
+                {
+                    processArmature(g.Item2, g.Item3, g.Item1.name);
+                }
             }
-            Logger.LogWarning($"Renderer with the name {rendererName} was not be found");
-            return null;
         }
 
         private UnityEngine.Matrix4x4 convertBindpose(Assimp.Matrix4x4 offsetMatrix)
@@ -405,9 +448,9 @@ namespace AssetImport
             return bindPose;
         }
 
-        private void processArmature(Assimp.Mesh mesh, SkinnedMeshRenderer renderer)
+        private void processArmature(Assimp.Mesh mesh, SkinnedMeshRenderer renderer, string name)
         {
-            Logger.LogDebug($"Processing Armature on Mesh: {mesh.Name}_{scene.Materials[mesh.MaterialIndex].Name}");
+            Logger.LogDebug($"Processing Armature on Mesh: {name}");
             Mesh uMesh = renderer.sharedMesh;
             // helper Dict<vertexIndex, List<Tuple<boneIndex, weight>>>
             Dictionary<int, List<Tuple<int, float>>> helper = new Dictionary<int, List<Tuple<int, float>>>();
