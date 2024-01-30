@@ -7,8 +7,8 @@
     <ProjectGuid>{3B4D6705-41E0-4BF9-A89E-89288F486FA8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>KKS_MeshImport</RootNamespace>
-    <AssemblyName>KKS_MeshImport</AssemblyName>
+    <RootNamespace>AssetImport</RootNamespace>
+    <AssemblyName>AssetImport</AssemblyName>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -184,7 +184,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="StirlingLabs.Assimp.Net">
-      <Version>23.11.0-pre-1742ad</Version>
+      <Version>24.1.0</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
