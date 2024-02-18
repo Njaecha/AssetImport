@@ -206,7 +206,7 @@
     <Error Condition="!Exists('..\packages\IllusionLibs.Koikatu.Vectrosity.2019.4.27.4\build\IllusionLibs.Koikatu.Vectrosity.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\IllusionLibs.Koikatu.Vectrosity.2019.4.27.4\build\IllusionLibs.Koikatu.Vectrosity.targets'))" />
   </Target>
   <PropertyGroup>
-    <PostBuildEvent>copy "$(TargetPath)" "P:\Koikatsu_Sunshine\BepInEx\plugins\AssetImport\KKS_MeshImport.dll"</PostBuildEvent>
+    <PostBuildEvent>copy "$(TargetPath)" "P:\Koikatsu_Sunshine\BepInEx\plugins\AssetImport\KKS_AssetImport.dll"</PostBuildEvent>
   </PropertyGroup>
   <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass.2021.9.17\build\IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass.2021.9.17\build\IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass.targets')" />
   <Import Project="..\packages\IllusionLibs.KoikatsuSunshine.UniRx.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniRx.targets" Condition="Exists('..\packages\IllusionLibs.KoikatsuSunshine.UniRx.2021.9.17\build\IllusionLibs.KoikatsuSunshine.UniRx.targets')" />

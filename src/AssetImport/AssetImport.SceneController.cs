@@ -30,7 +30,7 @@ namespace AssetImport
 
         public string getCachePath()
         {
-            string c = sceneName.Replace(".png", ""); 
+            string c = sceneName.Replace(".png", "");
             if (!Directory.Exists($"./UserData/AssetImport/Cache/{c}"))
             {
                 Directory.CreateDirectory($"./UserData/AssetImport/Cache/{c}");

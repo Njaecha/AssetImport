@@ -14,6 +14,7 @@ namespace AssetImport
         [HarmonyPostfix, HarmonyPatch(typeof(Studio.SceneInfo), nameof(Studio.SceneInfo.Load), new Type[]{typeof(string)})]
         private static void SceneLoadHook(string _path)
         {
+            _path = _path.Replace("\\", "/");
             AssetImport.Logger.LogDebug("Scene name registered: "+ _path.Substring(_path.LastIndexOf("/") + 1, _path.Length - _path.LastIndexOf("/")-1));
             AssetImport.asc.sceneName = _path.Substring(_path.LastIndexOf("/") + 1, _path.Length - _path.LastIndexOf("/") - 1);
         }
