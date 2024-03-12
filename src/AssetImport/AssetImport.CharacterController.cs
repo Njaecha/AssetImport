@@ -286,6 +286,24 @@ namespace AssetImport
             Logger.LogDebug("Set Extended data");
         }
 
+        private void LoadCoordinateCompatibilityDynamicBoneEditor(int cSet)
+        {
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)DBoneBackup)
+            {
+                if (dboneData.CoordinateIndex == cSet)
+                {
+                    KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
+                    if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Any(entry => entry.CoordinateIndex.Equals(dboneData.CoordinateIndex)
+                        && entry.Slot.Equals(dboneData.Slot)
+                        && entry.BoneName.Equals(dboneData.BoneName)))
+                    {
+                        Logger.LogDebug($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
+                        dBoneController.AccessoryDynamicBoneData.Add(dboneData);
+                    }
+                }
+            }
+        }
+
         internal void LoadCoordinate(ChaFileCoordinate coordinate)
         {
             int cSet = ChaControl.fileStatus.coordinateType;
@@ -329,20 +347,7 @@ namespace AssetImport
                     else if (accEnabled == false)
                     {
                         Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
-                        foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in DBoneBackup)
-                        {
-                            if (dboneData.CoordinateIndex == cSet)
-                            {
-                                KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                                if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Any(entry => entry.CoordinateIndex.Equals(dboneData.CoordinateIndex)
-                                    && entry.Slot.Equals(dboneData.Slot)
-                                    && entry.BoneName.Equals(dboneData.BoneName)))
-                                {
-                                    Logger.LogDebug($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
-                                    dBoneController.AccessoryDynamicBoneData.Add(dboneData);
-                                }
-                            }
-                        }
+                        LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
                         return;
                     }
                 }
@@ -451,24 +456,29 @@ namespace AssetImport
             }
 
             // dynamic bone editor 
-            if (cMode)
+            if (cMode && Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor"))
             {
-                foreach(KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in DBoneBackup)
+                CoordinateLoadOptionDynamicBoneEditor(cSet, cloImportAccessories);
+            }
+        }
+
+        private void CoordinateLoadOptionDynamicBoneEditor(int cSet, List<int> cloImportAccessories)
+        {
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)DBoneBackup)
+            {
+                if (dboneData.CoordinateIndex == cSet && !cloImportAccessories.Contains(dboneData.Slot))
                 {
-                    if (dboneData.CoordinateIndex == cSet && !cloImportAccessories.Contains(dboneData.Slot))
+                    KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
+                    if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Contains(dboneData))
                     {
-                        KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                        if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Contains(dboneData))
-                        {
-                            Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for {dboneData.Slot}");
-                            dBoneController.AccessoryDynamicBoneData.Add(dboneData);
-                        }
+                        Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for {dboneData.Slot}");
+                        dBoneController.AccessoryDynamicBoneData.Add(dboneData);
                     }
                 }
             }
         }
 
-        private List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> DBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>();
+        private object DBoneBackup;
 
         internal void LoadData()
         {
@@ -514,17 +524,24 @@ namespace AssetImport
 
             Singleton<HSPE.MainWindow>.Instance?.OnCharaLoad(ChaControl.chaFile); // Force KKSPE update
             ChaControl.gameObject.GetComponentInChildren<PoseController>()?._dynamicBonesEditor?.RefreshDynamicBoneList(); // Force KKSPE update DynamicBoneList
-            if (ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>() != null)
-            {
-                ChaControl.StartCoroutine(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>()?.ApplyData());
-                // backup current dynamic bone editor data for potential coordinate load option load
-                DBoneBackup.AddRange(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>().AccessoryDynamicBoneData);
-            }
+            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) DynamicBoneEditorBackup();
+
             BoneController boneController = ChaControl.gameObject.GetComponentInChildren<BoneController>();
             if (boneController != null) boneController.NeedsFullRefresh = true;
             
             hasBeenLoadedAlready = true;
             this.StartCoroutine(resetLoadedAlready());
+        }
+
+        private void DynamicBoneEditorBackup()
+        {
+            if (DBoneBackup == null) DBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>();
+            if (ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>() != null && DBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)
+            {
+                ChaControl.StartCoroutine(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>()?.ApplyData());
+                // backup current dynamic bone editor data for potential coordinate load option load
+                backup.AddRange(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>().AccessoryDynamicBoneData);
+            }
         }
 
         private void renameAccessory(int slot, string name)
