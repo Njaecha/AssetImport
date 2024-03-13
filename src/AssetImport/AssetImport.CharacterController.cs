@@ -347,7 +347,7 @@ namespace AssetImport
                     else if (accEnabled == false)
                     {
                         Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
-                        LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
+                        if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
                         return;
                     }
                 }
