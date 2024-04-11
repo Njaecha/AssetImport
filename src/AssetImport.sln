@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31911.196
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KKS_AssetImport", "AssetImport\KKS_AssetImport.csproj", "{3B4D6705-41E0-4BF9-A89E-89288F486FA8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AssetImport", "AssetImport\AssetImport.csproj", "{FF6D27BC-42BF-49C5-B337-F2A2DEFD62AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{3B4D6705-41E0-4BF9-A89E-89288F486FA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3B4D6705-41E0-4BF9-A89E-89288F486FA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3B4D6705-41E0-4BF9-A89E-89288F486FA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3B4D6705-41E0-4BF9-A89E-89288F486FA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF6D27BC-42BF-49C5-B337-F2A2DEFD62AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF6D27BC-42BF-49C5-B337-F2A2DEFD62AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF6D27BC-42BF-49C5-B337-F2A2DEFD62AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF6D27BC-42BF-49C5-B337-F2A2DEFD62AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {801BA3EA-5797-40CF-A0CD-C551E3889812}
+		SolutionGuid = {13B47B4B-B157-4F6E-AC1A-893B7A4CA25E}
 	EndGlobalSection
 EndGlobal
