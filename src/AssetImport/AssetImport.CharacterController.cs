@@ -59,7 +59,7 @@ namespace AssetImport
         protected override void Start()
         {
             base.Start();
-            string name = ChaControl.chaFile.charaFileName;
+            string name = ChaControl.chaFile.GetFancyCharacterName();
             if (name == null) name = "MakerDefault";
             characterCardName = name;
         }
