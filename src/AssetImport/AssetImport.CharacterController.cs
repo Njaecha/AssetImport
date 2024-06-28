@@ -201,6 +201,11 @@ namespace AssetImport
             if (currentGameMode == GameMode.Maker)
             {
                 CacheUtility.clearCache();
+                GameObject toggleObject = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/06_SystemTop/charaFileControl/charaFileWindow/WinRect/CharaLoad/Select/tglItem05");
+                if (toggleObject != null && toggleObject.GetComponent<Toggle>() != null)
+                {
+                    if (!toggleObject.GetComponent<Toggle>().isOn) return;
+                }
             }
             PluginData data = GetExtendedData();
             if (data == null) return;
