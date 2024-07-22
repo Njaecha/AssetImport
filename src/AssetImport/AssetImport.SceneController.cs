@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using IllusionUtility.GetUtility;
@@ -229,6 +230,7 @@ namespace AssetImport
 
             // add a sphere
             OCIItem ociitem = AddObjectItem.Add(0, 0, 0);
+            ociitem.itemInfo.bones.Clear();
 
             GameObject _base = ociitem.objectItem;
 
@@ -266,6 +268,9 @@ namespace AssetImport
 
             // destory normal subobject
             DestroyImmediate(_base.transform.Find("item_O_Sphere").gameObject);
+            ociitem.listBones.ForEach(info => Destroy(info.guideObject.gameObject));
+            ociitem.listBones.Clear();
+
 
             Vector3 ociScale = ociitem.guideObject.changeAmount.scale;
 
@@ -309,10 +314,12 @@ namespace AssetImport
                     if (!(gameObject == null))
                     {
                         OIBoneInfo oiboneInfo = null;
+                        bool isNew = false;
                         if (!ociitem.itemInfo.bones.TryGetValue(bone.name, out oiboneInfo))
                         {
                             oiboneInfo = new OIBoneInfo(Studio.Studio.GetNewIndex());
                             ociitem.itemInfo.bones.Add(bone.name, oiboneInfo);
+                            isNew = true;
                         }
                         GuideObject guideObject = Singleton<GuideObjectManager>.Instance.Add(gameObject.transform, oiboneInfo.dicKey);
                         guideObject.enablePos = false;
@@ -325,7 +332,7 @@ namespace AssetImport
                         guideObject.parentGuide = ociitem.guideObject;
                         ociitem.listBones.Add(new OCIChar.BoneInfo(guideObject, oiboneInfo, -1));
                         guideObject.SetActive(false, true);
-                        ItemFKCtrl.TargetInfo info = new ItemFKCtrl.TargetInfo(gameObject, oiboneInfo.changeAmount, true);
+                        ItemFKCtrl.TargetInfo info = new ItemFKCtrl.TargetInfo(gameObject, oiboneInfo.changeAmount, isNew);
                         info.baseRot = bone.localEulerAngles;
                         info.changeAmount.defRot = bone.localEulerAngles;
                         info.changeAmount.isDefRot = true;
@@ -333,7 +340,7 @@ namespace AssetImport
                     }
                 }
                 ociitem.dynamicBones = new DynamicBone[0];
-                ociitem.ActiveFK(false);
+                ociitem.ActiveFK(ociitem.isFK);
 
                 // dynamic bones
                 List<DynamicBone> dBones = new List<DynamicBone>();

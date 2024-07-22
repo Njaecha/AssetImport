@@ -30,7 +30,7 @@ namespace AssetImport
         ManualLogSource Logger = Main.Logger;
 
         internal Dictionary<int, string> coordinateCardNames = new Dictionary<int, string>();
-        internal string characterCardName;
+        internal string characterCardName { get => ChaControl.chaFile.charaFileName.IsNullOrEmpty() ? "MakerDefault" : ChaControl.chaFile.charaFileName; }
 
         private bool hasBeenLoadedAlready = false;
 
@@ -59,9 +59,6 @@ namespace AssetImport
         protected override void Start()
         {
             base.Start();
-            string name = ChaControl.chaFile.GetFancyCharacterName();
-            if (name == null) name = "MakerDefault";
-            characterCardName = name;
         }
 
         public string getCachePath()
@@ -366,7 +363,6 @@ namespace AssetImport
             }
 
             coordinateCardNames[cSet] = coordinate.coordinateFileName.Replace(".png", "");
-            characterCardName = ChaControl.chaFile.charaFileName == null ? "MakerDefault" : ChaControl.chaFile.charaFileName;
 
             Logger.LogDebug($"Coordinate Load Started {cSet} on {ChaControl.fileParam.fullname}");
             if (loadedObjects.ContainsKey(cSet) && !cMode)

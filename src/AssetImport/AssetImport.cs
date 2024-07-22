@@ -14,11 +14,12 @@ namespace AssetImport
     [BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
     [BepInDependency(KK_Plugins.MaterialEditor.MaterialEditorPlugin.PluginGUID, KK_Plugins.MaterialEditor.MaterialEditorPlugin.PluginVersion)]
     [BepInDependency(KK_Plugins.DynamicBoneEditor.Plugin.PluginGUID, BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("LoadFileLmitedFix")]
     public class AssetImport : BaseUnityPlugin
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "2.0.4";
+        public const string Version = "2.0.5";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;
