@@ -19,13 +19,13 @@ namespace AssetImport
         [Key("ExtraFileNames")]
         public List<string> extraFileNames { get; set; } = new List<string>();
 
-        public void AutoFill(string path)
+        public bool AutoFill(string path)
         {
             AssetImport.Logger.LogDebug("Filling Source with path:" + path);
             if (!File.Exists(path))
             {
                 AssetImport.Logger.LogError($"Saving source file [{path}] failed: File does not exist");
-                return;
+                return false;
             }
             file = File.ReadAllBytes(path);
             fileName = Path.GetFileName(path);
@@ -37,6 +37,7 @@ namespace AssetImport
                     extraFiles.Add(File.ReadAllBytes(path.Replace(fileName, s)));
                 }
             }
+            return true;
         }
     }
 }

@@ -58,9 +58,11 @@ namespace AssetImport
                 if (!alreadySavedFiles.Contains(asset.sourceFile))
                 {
                     AssetSource sFile = new AssetSource();
-                    sFile.AutoFill(getCachePath() + asset.sourceFile);
-                    alreadySavedFiles.Add(asset.sourceFile);
-                    sourceFiles.Add(sFile);
+                    if (sFile.AutoFill(getCachePath() + asset.sourceFile))
+                    {
+                        alreadySavedFiles.Add(asset.sourceFile);
+                        sourceFiles.Add(sFile);
+                    }
                 }
                 assets.Add(asset);
             }
@@ -107,13 +109,19 @@ namespace AssetImport
                 Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
                 foreach(AssetSource sourceFile in sourceFiles)
                 {
-                    File.WriteAllBytes(getCachePath() + sourceFile.fileName, sourceFile.file);
-                    if (sourceFile.extraFiles.Count > 0)
-                    {
-                        for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                    try 
+                    { 
+                        File.WriteAllBytes(Path.Combine(getCachePath(), sourceFile.fileName), sourceFile.file);
+                        if (sourceFile.extraFiles.Count > 0)
                         {
-                            File.WriteAllBytes(getCachePath() + sourceFile.extraFileNames[i], sourceFile.extraFiles[i]);
+                            for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                            {
+                                File.WriteAllBytes(getCachePath() + sourceFile.extraFileNames[i], sourceFile.extraFiles[i]);
+                            }
                         }
+                    } catch (Exception ex)
+                    {
+                        Logger.LogError("Error extracting file from scene: "+ ex.Message);
                     }
                 }
                 sourceFiles.Clear(); // force garbage colleciton
@@ -130,36 +138,44 @@ namespace AssetImport
                 }
                 foreach(Asset asset in assets)
                 {
-                    ObjectCtrlInfo newOCI = loadedItems[asset.identifier];
-
-                    asset.identifier = ((OCIItem)newOCI).itemInfo.dicKey;
-
-                    loadedObjects[((OCIItem)newOCI).itemInfo.dicKey] = asset;
-                    
-                    Import import = new Import(
-                        getCachePath() + asset.sourceFile,
-                        asset.hasBones,
-                        Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material),
-                        asset.doFbxTranslation,
-                        asset.perRendererMaterials);
-                    import.Load();
-                    if (import == null || !import.isLoaded)
+                    try
                     {
-                        AssetImport.Logger.LogError($"Loading {asset.sourceFile} from cache failed");
-                        continue;
-                    }
-                    foreach(int idx in asset.dynamicBoneIndices)
-                    {
-                        import.boneNodes[idx].setDynamic(true);
-                    }
-                    LoadProcess loadProcess = new LoadProcess(
-                        ((OCIItem)newOCI).objectItem,
-                        (OCIItem)newOCI,
-                        import,
-                        new Vector3(asset.scale[0], asset.scale[1], asset.scale[2]),
-                        operation == SceneOperationKind.Load ? LoadProcess.loadProcessKind.LOAD : LoadProcess.loadProcessKind.IMPORT);
 
-                    FinishLoadProcess(loadProcess);
+                        ObjectCtrlInfo newOCI = loadedItems[asset.identifier];
+
+                        asset.identifier = ((OCIItem)newOCI).itemInfo.dicKey;
+
+                        loadedObjects[((OCIItem)newOCI).itemInfo.dicKey] = asset;
+
+                        Import import = new Import(
+                            getCachePath() + asset.sourceFile,
+                            asset.hasBones,
+                            Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material),
+                            asset.doFbxTranslation,
+                            asset.perRendererMaterials);
+                        import.Load();
+                        if (import == null || !import.isLoaded)
+                        {
+                            AssetImport.Logger.LogError($"Loading {asset.sourceFile} from cache failed");
+                            continue;
+                        }
+                        foreach (int idx in asset.dynamicBoneIndices)
+                        {
+                            import.boneNodes[idx].setDynamic(true);
+                        }
+                        LoadProcess loadProcess = new LoadProcess(
+                            ((OCIItem)newOCI).objectItem,
+                            (OCIItem)newOCI,
+                            import,
+                            new Vector3(asset.scale[0], asset.scale[1], asset.scale[2]),
+                            operation == SceneOperationKind.Load ? LoadProcess.loadProcessKind.LOAD : LoadProcess.loadProcessKind.IMPORT);
+
+                        FinishLoadProcess(loadProcess);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError("Error creating asset: " + e.Message);
+                    }
                 }
             }
             ForceKKPEreload();
