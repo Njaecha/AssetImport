@@ -673,7 +673,6 @@ namespace AssetImport
 
                 Import import = new Import(
                     asset.sourceFile,
-                    1, // remove later
                     asset.hasBones,
                     Instantiate(accessory.accessory.gameObject.GetComponentInChildren<Renderer>().material),
                     asset.doFbxTranslation,
@@ -759,7 +758,6 @@ namespace AssetImport
 
             Import import = new Import(
                 identifierHash,
-                1, // remove later
                 armature, 
                 _baseMaterial, 
                 doFbxTranslation, 

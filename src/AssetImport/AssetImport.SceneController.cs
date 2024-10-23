@@ -226,7 +226,6 @@ namespace AssetImport
 
                         Import import = new Import(
                             asset.sourceFile,
-                            1, // remove later
                             asset.hasBones,
                             Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material),
                             asset.doFbxTranslation,
@@ -302,7 +301,6 @@ namespace AssetImport
 
                     Import import = new Import(
                         oldAsset.sourceFile,
-                        1, // remove later
                         oldAsset.hasBones, 
                         Instantiate(newItem.objectItem.GetComponentInChildren<MeshRenderer>().material),
                         oldAsset.doFbxTranslation,
@@ -357,7 +355,6 @@ namespace AssetImport
 
             Import import = new Import(
                 hash,
-                1, // remove later
                 armature, 
                 _baseMaterial, 
                 doFbxTranslation, 

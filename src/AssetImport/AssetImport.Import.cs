@@ -45,7 +45,7 @@ namespace AssetImport
         public readonly bool doFbxTranslation;
         public readonly bool perRendererMaterials;
 
-		public Import(string identifierHash, byte a, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
+		public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
 		{
 			Logger = AssetImport.Logger;
 
