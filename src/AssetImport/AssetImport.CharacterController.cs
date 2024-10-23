@@ -61,12 +61,12 @@ namespace AssetImport
             base.Start();
         }
 
-        public string getCachePath()
+        public string getDumpPath()
         {
-            return getCachePath(ChaControl.fileStatus.coordinateType);
+            return getDumpPath(ChaControl.fileStatus.coordinateType);
         }
 
-        public string getCachePath(int clothingSlot)
+        public string getDumpPath(int clothingSlot)
         {
             string cha = Regex.Replace(characterCardName, @"[^a-zA-Z0-9\-_]", "",RegexOptions.Compiled);
             string c = $"{cha}/{clothingSlot}";
@@ -141,7 +141,7 @@ namespace AssetImport
                 if (loadedObjects[source].ContainsKey(slot))
                 {
                     Asset asset = new Asset();
-                    asset.sourceFile = CacheUtility.copyFile(getCachePath(source), getCachePath(destination), loadedObjects[source][slot].sourceFile);
+                    asset.sourceFile = loadedObjects[source][slot].sourceFile;
                     asset.dynamicBoneIndices = loadedObjects[source][slot].dynamicBoneIndices;
                     asset.identifier = slot;
                     asset.scale = loadedObjects[source][slot].scale;
@@ -161,31 +161,51 @@ namespace AssetImport
         protected override void OnCardBeingSaved(GameMode currentGameMode)
         {
             PluginData data = new PluginData();
+
+            List<AssetFile> sourceFiles = new List<AssetFile>();
+            List<string> alreadySavedFiles = new List<string>();
+
             foreach(int cSet in loadedObjects.Keys)
             {
                 List<Asset> assets = new List<Asset>();
-                List<AssetSource> sourceFiles = new List<AssetSource>();
-                List<String> alreadySavedFiles = new List<string>();
+
                 if (!loadedObjects.ContainsKey(cSet)) continue;
                 foreach (int slot in loadedObjects[cSet].Keys)
                 {
                     Asset asset = loadedObjects[cSet][slot];
                     if (!alreadySavedFiles.Contains(asset.sourceFile))
                     {
-                        AssetSource sFile = new AssetSource();
-                        string path = getCachePath(cSet) + asset.sourceFile;
-                        sFile.AutoFill(path);
-                        alreadySavedFiles.Add(asset.sourceFile);
-                        sourceFiles.Add(sFile);
+                        // base file
+                        AssetFile sFile = new AssetFile();
+                        if (sFile.AutoFill(asset.sourceFile))
+                        {
+                            alreadySavedFiles.Add(asset.sourceFile);
+                            sourceFiles.Add(sFile);
+                        }
+                        List<string> additionalFiles = RAMCacheUtility.GetFileAdditionalFileHashes(asset.sourceFile);
+
+                        // additonal files (for .gltf)
+                        if (!additionalFiles.IsNullOrEmpty())
+                        {
+                            additionalFiles.ForEach(file =>
+                            {
+                                AssetFile sFile2 = new AssetFile();
+                                if (sFile2.AutoFill(file))
+                                {
+                                    alreadySavedFiles.Add(file);
+                                    sourceFiles.Add(sFile2);
+                                }
+                            });
+                        }
                     }
                     assets.Add(asset);
                 }
 
-                data.data.Add($"Files{cSet}", MessagePackSerializer.Serialize(sourceFiles));
                 data.data.Add($"Assets{cSet}", MessagePackSerializer.Serialize(assets));
             }
 
-            data.data.Add("Version", (byte)2);
+            data.data.Add($"Files", MessagePackSerializer.Serialize(sourceFiles));
+            data.data.Add("Version", (byte)3);
 
             SetExtendedData(data);
             Logger.LogDebug("Set Extended data");
@@ -197,7 +217,7 @@ namespace AssetImport
             loadedObjects.Clear();
             if (currentGameMode == GameMode.Maker)
             {
-                CacheUtility.clearCache();
+                RAMCacheUtility.clearCache();
                 GameObject toggleObject = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/06_SystemTop/charaFileControl/charaFileWindow/WinRect/CharaLoad/Select/tglItem05");
                 if (toggleObject != null && toggleObject.GetComponent<Toggle>() != null)
                 {
@@ -211,38 +231,104 @@ namespace AssetImport
             {
                 version = (byte)versionS;
             }
-            if (version == 2)
+
+
+            if (version == 2 || version == 3)
             {
                 for(int cSet = 0; cSet < ChaControl.chaFile.coordinate.Length; cSet++)
                 {
-                    List<AssetSource> sourceFiles;
-                    if (data.data.TryGetValue($"Files{cSet}", out var filesSerialized) && filesSerialized != null)
+                    // keeps track of the hashes for files from this load; only used for v2 -> v3 conversion
+                    Dictionary<string, string> filenameToHash = new Dictionary<string, string>();
+                    
+                    if (version == 2)
                     {
-                        sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
-                    }
-                    else
-                    {
-                        Logger.LogDebug($"No sourceFiles found in extended data for clothing slot {cSet}");
-                        continue;
-                    }
-                    Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                    foreach (AssetSource sourceFile in sourceFiles)
-                    {
-                        File.WriteAllBytes(getCachePath(cSet) + sourceFile.fileName, sourceFile.file);
-                        if (sourceFile.extraFiles.Count > 0)
+                        List<AssetSource> sourceFiles;
+                        if (data.data.TryGetValue($"Files{cSet}", out var filesSerialized) && filesSerialized != null)
                         {
-                            for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
+                        }
+                        else
+                        {
+                            Logger.LogDebug($"No sourceFiles found in extended data for clothing slot {cSet}");
+                            continue;
+                        }
+                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        foreach (AssetSource sourceFile in sourceFiles)
+                        {
+                            try
                             {
-                                File.WriteAllBytes(getCachePath(cSet) + sourceFile.extraFileNames[i], sourceFile.extraFiles[i]);
+                                List<string> extraFileHashes = new List<string>();
+                                // the order is important here! First load all extra files to cache then the main file
+                                for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                                {
+                                    byte[] extraFileData = sourceFile.extraFiles[i];
+                                    string extraFileName = sourceFile.extraFileNames[i];
+                                    string extraHash = RAMCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
+                                    extraFileHashes.Add(extraHash);
+                                    filenameToHash.Add(extraFileName, extraHash);
+                                }
+                                // add to cache with reference to the extra files if there are any.
+                                string hash = RAMCacheUtility.ToCache(sourceFile.file, sourceFile.fileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
+                                filenameToHash.Add(sourceFile.fileName, hash);
+
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("Error extracting file from scene: " + ex.Message);
                             }
                         }
+                        sourceFiles.Clear(); // force garbage colleciton
                     }
-                    sourceFiles.Clear(); // force garbage colleciton
+                    else if (version == 3)
+                    {
+                        List<AssetFile> sourceFiles;
+                        if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                        {
+                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
+                        }
+                        else
+                        {
+                            Logger.LogDebug("No sourceFiles found in extended data.");
+                            return;
+                        }
+                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        foreach (AssetFile sourceFile in sourceFiles)
+                        {
+                            try
+                            {
+                                RAMCacheUtility.ToCache(sourceFile);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("Error extracting file from scene: " + ex.Message);
+                            }
+                        }
+                        sourceFiles.Clear(); // force garbage collection
+                    }
 
                     List<Asset> assets;
                     if (data.data.TryGetValue($"Assets{cSet}", out var assetsSerialized) && assetsSerialized != null)
                     {
                         assets = MessagePackSerializer.Deserialize<List<Asset>>((byte[])assetsSerialized);
+                        if (version == 2) // replace asset.sourceFile with a Hash from the cache
+                        {
+                            List<Asset> brokenAssets = new List<Asset>();
+                            assets.ForEach(asset =>
+                            {
+
+                                if (filenameToHash.TryGetValue(asset.sourceFile, out string hash))
+                                {
+                                    asset.sourceFile = hash;
+                                }
+                                else
+                                {
+                                    // should never happen since the file should have been in the loaded file
+                                    Logger.LogError($"Asset with filename {asset.sourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
+                                    brokenAssets.Add(asset);
+                                }
+                            });
+                            brokenAssets.ForEach(asset => assets.Remove(asset));
+                        }
                     }
                     else
                     {
@@ -262,30 +348,46 @@ namespace AssetImport
         protected override void OnCoordinateBeingSaved(ChaFileCoordinate coordinate)
         {
             PluginData data = new PluginData();
+
             List<Asset> assets = new List<Asset>();
-            List<AssetSource> sourceFiles = new List<AssetSource>();
+            List<AssetFile> sourceFiles = new List<AssetFile>();
             List<String> alreadySavedFiles = new List<string>();
+
             if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) return;
             foreach(int slot in loadedObjects[ChaControl.fileStatus.coordinateType].Keys)
             {
                 Asset asset = loadedObjects[ChaControl.fileStatus.coordinateType][slot];
                 if (!alreadySavedFiles.Contains(asset.sourceFile))
                 {
-                    AssetSource sFile = new AssetSource();
-                    string path = getCachePath() + asset.sourceFile;
-                    sFile.AutoFill(path);
-                    alreadySavedFiles.Add(asset.sourceFile);
-                    sourceFiles.Add(sFile);
+                    AssetFile sFile = new AssetFile();
+                    if (sFile.AutoFill(asset.sourceFile))
+                    {
+                        alreadySavedFiles.Add(asset.sourceFile);
+                        sourceFiles.Add(sFile);
+                    }
+                    List<string> additionalFiles = RAMCacheUtility.GetFileAdditionalFileHashes(asset.sourceFile);
+                    if (!additionalFiles.IsNullOrEmpty())
+                    {
+                        additionalFiles.ForEach(file =>
+                        {
+                            AssetFile sFile2 = new AssetFile();
+                            if (sFile2.AutoFill(file))
+                            {
+                                alreadySavedFiles.Add(file);
+                                sourceFiles.Add(sFile2);
+                            }
+                        });
+                    }
                 }
                 assets.Add(asset);
             }
 
-            data.data.Add("Version", (byte)2);
+            data.data.Add("Version", (byte)3);
             data.data.Add("Files", MessagePackSerializer.Serialize(sourceFiles));
             data.data.Add("Assets", MessagePackSerializer.Serialize(assets));
 
             SetCoordinateExtendedData(coordinate, data);
-            Logger.LogDebug("Set Extended data");
+            Logger.LogDebug("Set Coordinate Extended data");
         }
 
         private void LoadCoordinateCompatibilityDynamicBoneEditor(int cSet)
@@ -404,42 +506,108 @@ namespace AssetImport
             {
                 version = (byte)versionS;
             }
-            if (version == 2)
+
+            // keeps track of the hashes for files from this load; only used for v2 -> v3 conversion
+            Dictionary<string, string> filenameToHash = new Dictionary<string, string>();
+
+            if (version == 2 || version == 3)
             {
-                List<AssetSource> sourceFiles;
-                if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                if (version == 2) // old AssetSource format
                 {
-                    sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
-                }
-                else
-                {
-                    Logger.LogDebug("No sourceFiles found in extended data.");
-                    return;
-                }
-                Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                foreach (AssetSource sourceFile in sourceFiles)
-                {
-                    File.WriteAllBytes(getCachePath() + sourceFile.fileName, sourceFile.file);
-                    if (sourceFile.extraFiles.Count > 0)
+                    List<AssetSource> sourceFiles;
+                    if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
                     {
-                        for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                        sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
+                    }
+                    else
+                    {
+                        AssetImport.Logger.LogDebug("No sourceFiles found in extended data.");
+                        return;
+                    }
+                    Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                    foreach (AssetSource sourceFile in sourceFiles)
+                    {
+                        try
                         {
-                            File.WriteAllBytes(getCachePath() + sourceFile.extraFileNames[i], sourceFile.extraFiles[i]);
+                            List<string> extraFileHashes = new List<string>();
+                            // the order is important here! First load all extra files to cache then the main file
+                            for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                            {
+                                byte[] extraFileData = sourceFile.extraFiles[i];
+                                string extraFileName = sourceFile.extraFileNames[i];
+                                string extraHash = RAMCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
+                                extraFileHashes.Add(extraHash);
+                                filenameToHash.Add(extraFileName, extraHash);
+                            }
+                            // add to cache with reference to the extra files if there are any.
+                            string hash = RAMCacheUtility.ToCache(sourceFile.file, sourceFile.fileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
+                            filenameToHash.Add(sourceFile.fileName, hash);
+
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError("Error extracting file from scene: " + ex.Message);
                         }
                     }
+                    sourceFiles.Clear(); // force garbage colleciton
                 }
-                sourceFiles.Clear(); // force garbage colleciton
+                else if (version == 3) // new AssetFile format
+                {
+                    List<AssetFile> sourceFiles;
+                    if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                    {
+                        sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
+                    }
+                    else
+                    {
+                        Logger.LogDebug("No sourceFiles found in extended data.");
+                        return;
+                    }
+                    Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                    foreach (AssetFile sourceFile in sourceFiles)
+                    {
+                        try
+                        {
+                            RAMCacheUtility.ToCache(sourceFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError("Error extracting file from scene: " + ex.Message);
+                        }
+                    }
+                    sourceFiles.Clear(); // force garbage collection
+                }
 
+                // hasnt changed in verion 3
                 List<Asset> assets;
                 if (data.data.TryGetValue("Assets", out var assetsSerialized) && assetsSerialized != null)
                 {
                     assets = MessagePackSerializer.Deserialize<List<Asset>>((byte[])assetsSerialized);
+                    if (version == 2) // replace asset.sourceFile with a Hash from the cache
+                    {
+                        List<Asset> brokenAssets = new List<Asset>();
+                        assets.ForEach(asset =>
+                        {
+                            if (filenameToHash.TryGetValue(asset.sourceFile, out string hash))
+                            {
+                                asset.sourceFile = hash;
+                            }
+                            else
+                            {
+                                // should never happen since the file should have been in the loaded file
+                                Logger.LogError($"Asset with filename {asset.sourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
+                                brokenAssets.Add(asset);
+                            }
+                        });
+                        brokenAssets.ForEach(asset => assets.Remove(asset));
+                    }
                 }
                 else
                 {
                     Logger.LogDebug("No assets found in extended data, aborting load...");
                     return;
                 }
+
                 foreach (Asset asset in assets)
                 {
                     if (!loadedObjects.ContainsKey(cSet)) loadedObjects[cSet] = new Dictionary<int, Asset>();
@@ -497,8 +665,15 @@ namespace AssetImport
                     Logger.LogWarning($"Accessory in slot {asset.identifier} was null");
                     continue;
                 }
+
+                if (Main.dumpAssets.Value)
+                {
+                    File.WriteAllBytes(Path.Combine(getDumpPath(cSet), RAMCacheUtility.GetFileName(asset.sourceFile)), RAMCacheUtility.GetFileBlob(asset.sourceFile));
+                }
+
                 Import import = new Import(
-                    getCachePath() + asset.sourceFile,
+                    asset.sourceFile,
+                    1, // remove later
                     asset.hasBones,
                     Instantiate(accessory.accessory.gameObject.GetComponentInChildren<Renderer>().material),
                     asset.doFbxTranslation,
@@ -574,7 +749,22 @@ namespace AssetImport
 
             GameObject _base = accessory.gameObject;
             Material _baseMaterial = Instantiate(_base.GetComponentInChildren<Renderer>().material);
-            Import import = new Import(path, armature, _baseMaterial, doFbxTranslation, perRendererMaterials);
+
+            string identifierHash = RAMCacheUtility.ToCache(path);
+
+            if (Main.dumpAssets.Value)
+            {
+                File.WriteAllBytes(Path.Combine(getDumpPath(), Path.GetFileName(path)), RAMCacheUtility.GetFileBlob(identifierHash));
+            }
+
+            Import import = new Import(
+                identifierHash,
+                1, // remove later
+                armature, 
+                _baseMaterial, 
+                doFbxTranslation, 
+                perRendererMaterials
+            );
             import.Load();
             if (!import.isLoaded) return;
 
@@ -692,7 +882,7 @@ namespace AssetImport
             if (loadProcess.kind == LoadProcess.loadProcessKind.NORMAL)
             {
                 Asset asset = new Asset();
-                asset.sourceFile = loadProcess.import.sourceFileName;
+                asset.sourceFile = loadProcess.import.sourceIdentifier;
                 asset.dynamicBoneIndices = new List<int>();
                 for (int i = 0; i < import.boneNodes.Count; i++)
                 {
@@ -704,8 +894,6 @@ namespace AssetImport
                 asset.hasBones = loadProcess.import.hasBones;
                 asset.perRendererMaterials = loadProcess.import.perRendererMaterials;
                 asset.doFbxTranslation = loadProcess.import.doFbxTranslation;
-
-                CacheUtility.toCache(getCachePath(), loadProcess.import.sourcePath);
 
                 if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) loadedObjects[ChaControl.fileStatus.coordinateType] = new Dictionary<int, Asset>();
                 loadedObjects[ChaControl.fileStatus.coordinateType][asset.identifier] = asset;

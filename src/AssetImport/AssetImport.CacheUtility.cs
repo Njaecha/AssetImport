@@ -1,4 +1,5 @@
-﻿using System;
+﻿/* No longer used since Version 3.0.0
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LitJson;
@@ -12,6 +13,11 @@ namespace AssetImport
     /// </summary>
     public class CacheUtility
     {
+        /// <summary>
+        /// Initially copies a file to cache
+        /// </summary>
+        /// <param name="cache">Path of cache folder</param>
+        /// <param name="sourcePath">Filepath of source file</param>
         public static void toCache(string cache, string sourcePath)
         {
             string cacheFilePath = cache + Path.GetFileName(sourcePath);
@@ -103,3 +109,4 @@ namespace AssetImport
         }
     }
 }
+*/

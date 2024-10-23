@@ -151,6 +151,7 @@
     <Compile Include="AssetImport.Asset.cs" />
     <Compile Include="AssetImport.AssetSource.cs" />
     <Compile Include="AssetImport.BoneNode.cs" />
+    <Compile Include="AssetImport.RAMCacheUtility.cs" />
     <Compile Include="AssetImport.CacheUtility.cs" />
     <Compile Include="AssetImport.CharacterController.cs" />
     <Compile Include="AssetImport.cs" />

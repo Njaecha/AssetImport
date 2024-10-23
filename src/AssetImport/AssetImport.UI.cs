@@ -338,7 +338,7 @@ namespace AssetImport
                         if (GUI.Button(new Rect(470-25, y, 25, 25), "..."))
                         {
                             tPath.path = tPath.path.Replace("\\", "/");
-                            string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Select Texture", Main.currentLoadProcess.import.sourcePath,
+                            string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Select Texture", Main.currentLoadProcess.import.sourceIdentifier,
                                     "Image files (*.png; *.jpg) |*.png; *.jpg | All files (*.*)|*.*", "png", SingleFileFlags);
                             if (file != null)
                             {

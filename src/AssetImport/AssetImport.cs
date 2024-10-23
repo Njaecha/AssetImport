@@ -19,7 +19,7 @@ namespace AssetImport
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "2.0.6";
+        public const string Version = "3.0.0";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;
@@ -29,7 +29,7 @@ namespace AssetImport
         // Config
         internal static ConfigEntry<KeyboardShortcut> hotkey;
         internal static ConfigEntry<string> defaultDir;
-        internal static ConfigEntry<bool> clearCache;
+        internal static ConfigEntry<bool> dumpAssets;
 
         // current import
         internal static LoadProcess currentLoadProcess;
@@ -41,7 +41,7 @@ namespace AssetImport
             KeyboardShortcut defaultShortcut = new KeyboardShortcut(KeyCode.I, KeyCode.LeftAlt);
             hotkey = Config.Bind("_General_", "Hotkey", defaultShortcut, "Press this key to open the UI");
             defaultDir = Config.Bind("_General_", "Default Directory", "C:", "The default directory of the file dialoge.");
-            clearCache = Config.Bind("Backend", "Clear Cache", true, "Toggles clearing of the cache at /UserData/AssetImport/cache on startup");
+            dumpAssets = Config.Bind("Backend", "Dump Assets", false, "Dumps assets to /UserData/AssetImport/ when loading a card with assets.");
 
             UI = this.GetOrAddComponent<AssetUI>();
 
@@ -51,7 +51,6 @@ namespace AssetImport
             StudioSaveLoadApi.RegisterExtraBehaviour<AssetSceneController>(GUID);
             CharacterApi.RegisterExtraBehaviour<AssetCharaController>(GUID);
 
-            if (clearCache.Value) CacheUtility.clearCache();
             KKAPI.Maker.AccessoriesApi.AccessoryKindChanged += AccessoryKindChanged;
             KKAPI.Maker.AccessoriesApi.AccessoriesCopied += AccessoryCopied;
             KKAPI.Maker.AccessoriesApi.AccessoryTransferred += AccessoryTransferred;

@@ -28,8 +28,8 @@ namespace AssetImport
         private List<Mesh> meshes;
         private List<Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>> processArmaturesLater = new List<Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>>();
 
-		public string sourcePath { get; private set; }
-        public string sourceFileName { get => Path.GetFileName(sourcePath); }
+		public string sourceIdentifier { get; private set; }
+        public string sourceFileName { get => RAMCacheUtility.GetFileName(sourceIdentifier); }
 		public List<Transform> bones { get; private set; }
 		public List<Renderer> renderers { get; private set; }
         public List<BoneNode> boneNodes { get; private set; }
@@ -45,12 +45,12 @@ namespace AssetImport
         public readonly bool doFbxTranslation;
         public readonly bool perRendererMaterials;
 
-		public Import(string path, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
+		public Import(string identifierHash, byte a, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
 		{
 			Logger = AssetImport.Logger;
 
 			importBones = importArmature;
-			sourcePath = path.Replace("\\", "/");
+			sourceIdentifier = identifierHash;
 			if (baseMat == null) baseMat = new Material(Shader.Find("Standard"));
 			bMat = baseMat;
 
@@ -115,17 +115,40 @@ namespace AssetImport
 
 		public void Load()
 		{
-            Logger.LogDebug($"Loading of {sourcePath} started");
-			if (!File.Exists(sourcePath))
-			{
-				Logger.LogError($"File {sourcePath} does not exist");
-				return;
-			}
-
-			AssimpContext imp = new AssimpContext();
+            Logger.LogDebug($"Loading of {RAMCacheUtility.GetFileName(sourceIdentifier)} started");
+			
+            AssimpContext imp = new AssimpContext();
             imp.SetConfig(new Assimp.Configs.RemoveEmptyBonesConfig(false));
-			scene = imp.ImportFile(sourcePath, PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
-			if (scene == null)
+            
+            List<string> extraFiles = RAMCacheUtility.GetFileAdditionalFileHashes(sourceIdentifier);
+            string temp = Path.GetTempPath();
+            string folder = $"AssetImport_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            
+            if (!extraFiles.IsNullOrEmpty())
+            {
+                try
+                {
+                    Logger.LogInfo($"File has additional files. Because of a limitation of the assimp wrapper the files have to be written to disk in order to be loaded!");
+                    Directory.CreateDirectory(Path.Combine(temp, folder));
+                    File.WriteAllBytes(Path.Combine(temp, folder, RAMCacheUtility.GetFileName(sourceIdentifier)), RAMCacheUtility.GetFileBlob(sourceIdentifier));
+                    extraFiles.ForEach(file => File.WriteAllBytes(Path.Combine(temp, folder, RAMCacheUtility.GetFileName(file)), RAMCacheUtility.GetFileBlob(file)));
+
+                    // load asset from file on disk to be able to load extra files.
+                    scene = imp.ImportFile(Path.Combine(temp, folder, RAMCacheUtility.GetFileName(sourceIdentifier)), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
+                }
+                catch(IOException e)
+                {
+                    Logger.LogError($"I/O error when trying to write the file: {e.Message}");
+                    return;
+                }
+            }
+            else
+            {
+                // load asset from stream
+			    scene = imp.ImportFileFromStream(RAMCacheUtility.GetFileStream(sourceIdentifier), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
+            }
+            
+            if (scene == null)
 			{
 				Logger.LogError("Assimp Import failed, aborting load process");
 				return;
@@ -138,6 +161,19 @@ namespace AssetImport
             processArmatures(); // convert armature for meshes with bones
             buildBoneNodeTree(gameObject, 0, null);
             isLoaded = true;
+
+            if (!extraFiles.IsNullOrEmpty())
+            {
+                try
+                {
+                    File.Delete(Path.Combine(temp, folder, RAMCacheUtility.GetFileName(sourceIdentifier)));
+                    extraFiles.ForEach(file => File.Delete(Path.Combine(temp, folder, RAMCacheUtility.GetFileName(file))));
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Cleanup failed: {e.Message}");
+                }  
+            }
 		}
 
 		private void convertTransfrom(Assimp.Matrix4x4 aTransform, Transform uTransform)
