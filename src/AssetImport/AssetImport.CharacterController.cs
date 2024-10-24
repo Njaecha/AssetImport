@@ -21,30 +21,30 @@ namespace AssetImport
 {
     /// <summary>
     /// CharacterController for AssetImport.
-    /// Handels save/load and all kinds of reload events for Accessories.
+    /// Handles save/load and all kinds of reload events for Accessories.
     /// </summary>
     class AssetCharaController : CharaCustomFunctionController
     {
-        private Dictionary<int, Dictionary<int, Asset>> loadedObjects = new Dictionary<int, Dictionary<int, Asset>>();
+        private readonly Dictionary<int, Dictionary<int, Asset>> loadedObjects = new Dictionary<int, Dictionary<int, Asset>>();
         
-        ManualLogSource Logger = Main.Logger;
+        private readonly ManualLogSource Logger = Main.Logger;
 
-        internal Dictionary<int, string> coordinateCardNames = new Dictionary<int, string>();
-        internal string characterCardName { get => ChaControl.chaFile.charaFileName.IsNullOrEmpty() ? "MakerDefault" : ChaControl.chaFile.charaFileName; }
+        internal readonly Dictionary<int, string> CoordinateCardNames = new Dictionary<int, string>();
+        internal string CharacterCardName { get => ChaControl.chaFile.charaFileName.IsNullOrEmpty() ? "MakerDefault" : ChaControl.chaFile.charaFileName; }
 
-        private bool hasBeenLoadedAlready = false;
+        private bool _hasBeenLoadedAlready;
 
         // used to transfer plugin data from Coordinate Load Options temp character to the real characters.
         private static PluginData cloTransferPluginData;
 
-        internal IEnumerator removeCloTransferPluginData()
+        private static IEnumerator RemoveCloTransferPluginData()
         {
             yield return null;
             yield return null;
             cloTransferPluginData = null;
         }
 
-        internal IEnumerator resetLoadedAlready()
+        private IEnumerator ResetLoadedAlready()
         {
             yield return null;
             yield return null;
@@ -53,7 +53,7 @@ namespace AssetImport
             yield return null;
             yield return null;
             yield return null;
-            hasBeenLoadedAlready = false;
+            _hasBeenLoadedAlready = false;
         }
 
         protected override void Start()
@@ -61,16 +61,16 @@ namespace AssetImport
             base.Start();
         }
 
-        public string getDumpPath()
+        public string GetDumpPath()
         {
-            return getDumpPath(ChaControl.fileStatus.coordinateType);
+            return GetDumpPath(ChaControl.fileStatus.coordinateType);
         }
 
-        public string getDumpPath(int clothingSlot)
+        public string GetDumpPath(int clothingSlot)
         {
-            string cha = Regex.Replace(characterCardName, @"[^a-zA-Z0-9\-_]", "",RegexOptions.Compiled);
-            string c = $"{cha}/{clothingSlot}";
-            if (coordinateCardNames.ContainsKey(clothingSlot)) c = coordinateCardNames[clothingSlot];
+            string cha = Regex.Replace(CharacterCardName, @"[^a-zA-Z0-9\-_]", "",RegexOptions.Compiled);
+            var c = $"{cha}/{clothingSlot}";
+            if (CoordinateCardNames.TryGetValue(clothingSlot, out string cardName)) c = cardName;
 
             if (!Directory.Exists($"./UserData/AssetImport/Cache/{c}"))
             {
@@ -81,53 +81,51 @@ namespace AssetImport
 
         // accessory events
 
-        internal void accessoryChangeEvent(int slot)
+        internal void AccessoryChangeEvent(int slot)
         {
-            if (loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType))
-                if (loadedObjects[ChaControl.fileStatus.coordinateType].ContainsKey(slot))
-                {
-                    loadedObjects[ChaControl.fileStatus.coordinateType].Remove(slot);
-                }
-        }
-
-        internal void accessoryTransferedEvent(int source, int destination)
-        {
-            int cSet = ChaControl.fileStatus.coordinateType;
-            if (loadedObjects.ContainsKey(cSet))
+            if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) return;
+            if (loadedObjects[ChaControl.fileStatus.coordinateType].ContainsKey(slot))
             {
-                Logger.LogDebug("Accessory Transfer Event");
-                if (loadedObjects[cSet].ContainsKey(source))
-                {
-                    Asset asset = new Asset();
-                    asset.sourceFile = loadedObjects[cSet][source].sourceFile;
-                    asset.dynamicBoneIndices = loadedObjects[cSet][source].dynamicBoneIndices;
-                    asset.identifier = destination;
-                    asset.scale = loadedObjects[cSet][source].scale;
-                    asset.hasBones = loadedObjects[cSet][source].hasBones;
-                    asset.perRendererMaterials = loadedObjects[cSet][source].perRendererMaterials;
-                    asset.doFbxTranslation = loadedObjects[cSet][source].doFbxTranslation;
-                    loadedObjects[cSet][destination] = asset;
-                    Logger.LogDebug($"Source slot {source} --> Destination slot {destination}");
-                }
-                else if (loadedObjects[cSet].ContainsKey(destination))
-                {
-                    loadedObjects[cSet].Remove(destination);
-                }
+                loadedObjects[ChaControl.fileStatus.coordinateType].Remove(slot);
             }
         }
 
-        internal void accessoryCopiedEvent(int source, int destination, IEnumerable<int> slots)
+        internal void AccessoryTransferedEvent(int source, int destination)
+        {
+            int cSet = ChaControl.fileStatus.coordinateType;
+            if (!loadedObjects.ContainsKey(cSet)) return;
+            Logger.LogDebug("Accessory Transfer Event");
+            if (loadedObjects[cSet].ContainsKey(source))
+            {
+                Asset asset = new Asset
+                {
+                    SourceFile = loadedObjects[cSet][source].SourceFile,
+                    DynamicBoneIndices = loadedObjects[cSet][source].DynamicBoneIndices,
+                    Identifier = destination,
+                    Scale = loadedObjects[cSet][source].Scale,
+                    HasBones = loadedObjects[cSet][source].HasBones,
+                    PerRendererMaterials = loadedObjects[cSet][source].PerRendererMaterials,
+                    DoFbxTranslation = loadedObjects[cSet][source].DoFbxTranslation
+                };
+                loadedObjects[cSet][destination] = asset;
+                Logger.LogDebug($"Source slot {source} --> Destination slot {destination}");
+            }
+            else if (loadedObjects[cSet].ContainsKey(destination))
+            {
+                loadedObjects[cSet].Remove(destination);
+            }
+        }
+
+        internal void AccessoryCopiedEvent(int source, int destination, IEnumerable<int> slots)
         {
             if (!loadedObjects.ContainsKey(source))
             {
-                if (loadedObjects.ContainsKey(destination))
+                if (!loadedObjects.ContainsKey(destination)) return;
+                foreach(int slot in slots)
                 {
-                    foreach(int slot in slots)
+                    if (loadedObjects[destination].ContainsKey(slot))
                     {
-                        if (loadedObjects[destination].ContainsKey(slot))
-                        {
-                            loadedObjects[destination].Remove(slot);
-                        }
+                        loadedObjects[destination].Remove(slot);
                     }
                 }
                 return;
@@ -141,13 +139,13 @@ namespace AssetImport
                 if (loadedObjects[source].ContainsKey(slot))
                 {
                     Asset asset = new Asset();
-                    asset.sourceFile = loadedObjects[source][slot].sourceFile;
-                    asset.dynamicBoneIndices = loadedObjects[source][slot].dynamicBoneIndices;
-                    asset.identifier = slot;
-                    asset.scale = loadedObjects[source][slot].scale;
-                    asset.hasBones = loadedObjects[source][slot].hasBones;
-                    asset.perRendererMaterials = loadedObjects[source][slot].perRendererMaterials;
-                    asset.doFbxTranslation = loadedObjects[source][slot].doFbxTranslation;
+                    asset.SourceFile = loadedObjects[source][slot].SourceFile;
+                    asset.DynamicBoneIndices = loadedObjects[source][slot].DynamicBoneIndices;
+                    asset.Identifier = slot;
+                    asset.Scale = loadedObjects[source][slot].Scale;
+                    asset.HasBones = loadedObjects[source][slot].HasBones;
+                    asset.PerRendererMaterials = loadedObjects[source][slot].PerRendererMaterials;
+                    asset.DoFbxTranslation = loadedObjects[source][slot].DoFbxTranslation;
                     loadedObjects[destination][slot] = asset;
                     Logger.LogDebug($"Source: Type {source}, Slot {slot} --> Destination: Type {destination}");
                 }
@@ -162,27 +160,26 @@ namespace AssetImport
         {
             PluginData data = new PluginData();
 
-            List<AssetFile> sourceFiles = new List<AssetFile>();
-            List<string> alreadySavedFiles = new List<string>();
+            var sourceFiles = new List<AssetFile>();
+            var alreadySavedFiles = new List<string>();
 
             foreach(int cSet in loadedObjects.Keys)
             {
-                List<Asset> assets = new List<Asset>();
+                var assets = new List<Asset>();
 
                 if (!loadedObjects.ContainsKey(cSet)) continue;
-                foreach (int slot in loadedObjects[cSet].Keys)
+                foreach (Asset asset in loadedObjects[cSet].Keys.Select(slot => loadedObjects[cSet][slot]))
                 {
-                    Asset asset = loadedObjects[cSet][slot];
-                    if (!alreadySavedFiles.Contains(asset.sourceFile))
+                    if (!alreadySavedFiles.Contains(asset.SourceFile))
                     {
                         // base file
                         AssetFile sFile = new AssetFile();
-                        if (sFile.AutoFill(asset.sourceFile))
+                        if (sFile.AutoFill(asset.SourceFile))
                         {
-                            alreadySavedFiles.Add(asset.sourceFile);
+                            alreadySavedFiles.Add(asset.SourceFile);
                             sourceFiles.Add(sFile);
                         }
-                        List<string> additionalFiles = RAMCacheUtility.GetFileAdditionalFileHashes(asset.sourceFile);
+                        List<string> additionalFiles = RamCacheUtility.GetFileAdditionalFileHashes(asset.SourceFile);
 
                         // additonal files (for .gltf)
                         if (!additionalFiles.IsNullOrEmpty())
@@ -190,11 +187,9 @@ namespace AssetImport
                             additionalFiles.ForEach(file =>
                             {
                                 AssetFile sFile2 = new AssetFile();
-                                if (sFile2.AutoFill(file))
-                                {
-                                    alreadySavedFiles.Add(file);
-                                    sourceFiles.Add(sFile2);
-                                }
+                                if (!sFile2.AutoFill(file)) return;
+                                alreadySavedFiles.Add(file);
+                                sourceFiles.Add(sFile2);
                             });
                         }
                     }
@@ -217,9 +212,9 @@ namespace AssetImport
             loadedObjects.Clear();
             if (currentGameMode == GameMode.Maker)
             {
-                RAMCacheUtility.clearCache();
+                RamCacheUtility.ClearCache();
                 GameObject toggleObject = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/06_SystemTop/charaFileControl/charaFileWindow/WinRect/CharaLoad/Select/tglItem05");
-                if (toggleObject != null && toggleObject.GetComponent<Toggle>() != null)
+                if (toggleObject && toggleObject.GetComponent<Toggle>())
                 {
                     if (!toggleObject.GetComponent<Toggle>().isOn) return;
                 }
@@ -238,92 +233,97 @@ namespace AssetImport
                 for(int cSet = 0; cSet < ChaControl.chaFile.coordinate.Length; cSet++)
                 {
                     // keeps track of the hashes for files from this load; only used for v2 -> v3 conversion
-                    Dictionary<string, string> filenameToHash = new Dictionary<string, string>();
+                    var filenameToHash = new Dictionary<string, string>();
                     
-                    if (version == 2)
+                    switch (version)
                     {
-                        List<AssetSource> sourceFiles;
-                        if (data.data.TryGetValue($"Files{cSet}", out var filesSerialized) && filesSerialized != null)
+                        case 2:
                         {
-                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
-                        }
-                        else
-                        {
-                            Logger.LogDebug($"No sourceFiles found in extended data for clothing slot {cSet}");
-                            continue;
-                        }
-                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                        foreach (AssetSource sourceFile in sourceFiles)
-                        {
-                            try
+                            List<AssetSource> sourceFiles;
+                            if (data.data.TryGetValue($"Files{cSet}", out var filesSerialized) && filesSerialized != null)
                             {
-                                List<string> extraFileHashes = new List<string>();
-                                // the order is important here! First load all extra files to cache then the main file
-                                for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                                sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
+                            }
+                            else
+                            {
+                                Logger.LogDebug($"No sourceFiles found in extended data for clothing slot {cSet}");
+                                continue;
+                            }
+                            Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                            foreach (AssetSource sourceFile in sourceFiles)
+                            {
+                                try
                                 {
-                                    byte[] extraFileData = sourceFile.extraFiles[i];
-                                    string extraFileName = sourceFile.extraFileNames[i];
-                                    string extraHash = RAMCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
-                                    extraFileHashes.Add(extraHash);
-                                    filenameToHash.Add(extraFileName, extraHash);
-                                }
-                                // add to cache with reference to the extra files if there are any.
-                                string hash = RAMCacheUtility.ToCache(sourceFile.file, sourceFile.fileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
-                                filenameToHash.Add(sourceFile.fileName, hash);
+                                    List<string> extraFileHashes = new List<string>();
+                                    // the order is important here! First load all extra files to cache then the main file
+                                    for (int i = 0; i < sourceFile.ExtraFiles.Count; i++)
+                                    {
+                                        byte[] extraFileData = sourceFile.ExtraFiles[i];
+                                        string extraFileName = sourceFile.ExtraFileNames[i];
+                                        string extraHash = RamCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
+                                        extraFileHashes.Add(extraHash);
+                                        filenameToHash.Add(extraFileName, extraHash);
+                                    }
+                                    // add to cache with reference to the extra files if there are any.
+                                    string hash = RamCacheUtility.ToCache(sourceFile.File, sourceFile.FileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
+                                    filenameToHash.Add(sourceFile.FileName, hash);
 
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogError("Error extracting file from scene: " + ex.Message);
+                                }
                             }
-                            catch (Exception ex)
-                            {
-                                Logger.LogError("Error extracting file from scene: " + ex.Message);
-                            }
+                            sourceFiles.Clear(); // force garbage colleciton
+                            break;
                         }
-                        sourceFiles.Clear(); // force garbage colleciton
-                    }
-                    else if (version == 3)
-                    {
-                        List<AssetFile> sourceFiles;
-                        if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                        case 3:
                         {
-                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
-                        }
-                        else
-                        {
-                            Logger.LogDebug("No sourceFiles found in extended data.");
-                            return;
-                        }
-                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                        foreach (AssetFile sourceFile in sourceFiles)
-                        {
-                            try
+                            List<AssetFile> sourceFiles;
+                            if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
                             {
-                                RAMCacheUtility.ToCache(sourceFile);
+                                sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
                             }
-                            catch (Exception ex)
+                            else
                             {
-                                Logger.LogError("Error extracting file from scene: " + ex.Message);
+                                Logger.LogDebug("No sourceFiles found in extended data.");
+                                return;
                             }
+                            Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                            foreach (AssetFile sourceFile in sourceFiles)
+                            {
+                                try
+                                {
+                                    RamCacheUtility.ToCache(sourceFile);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.LogError("Error extracting file from scene: " + ex.Message);
+                                }
+                            }
+                            sourceFiles.Clear(); // force garbage collection
+                            break;
                         }
-                        sourceFiles.Clear(); // force garbage collection
                     }
 
                     List<Asset> assets;
-                    if (data.data.TryGetValue($"Assets{cSet}", out var assetsSerialized) && assetsSerialized != null)
+                    if (data.data.TryGetValue($"Assets{cSet}", out object assetsSerialized) && assetsSerialized != null)
                     {
                         assets = MessagePackSerializer.Deserialize<List<Asset>>((byte[])assetsSerialized);
                         if (version == 2) // replace asset.sourceFile with a Hash from the cache
                         {
-                            List<Asset> brokenAssets = new List<Asset>();
+                            var brokenAssets = new List<Asset>();
                             assets.ForEach(asset =>
                             {
 
-                                if (filenameToHash.TryGetValue(asset.sourceFile, out string hash))
+                                if (filenameToHash.TryGetValue(asset.SourceFile, out string hash))
                                 {
-                                    asset.sourceFile = hash;
+                                    asset.SourceFile = hash;
                                 }
                                 else
                                 {
                                     // should never happen since the file should have been in the loaded file
-                                    Logger.LogError($"Asset with filename {asset.sourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
+                                    Logger.LogError($"Asset with filename {asset.SourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
                                     brokenAssets.Add(asset);
                                 }
                             });
@@ -338,7 +338,7 @@ namespace AssetImport
                     foreach (Asset asset in assets)
                     {
                         if (!loadedObjects.ContainsKey(cSet)) loadedObjects[cSet] = new Dictionary<int, Asset>();
-                        loadedObjects[cSet][asset.identifier] = asset;
+                        loadedObjects[cSet][asset.Identifier] = asset;
                     }
                 }
             }
@@ -349,23 +349,22 @@ namespace AssetImport
         {
             PluginData data = new PluginData();
 
-            List<Asset> assets = new List<Asset>();
-            List<AssetFile> sourceFiles = new List<AssetFile>();
-            List<String> alreadySavedFiles = new List<string>();
+            var assets = new List<Asset>();
+            var sourceFiles = new List<AssetFile>();
+            var alreadySavedFiles = new List<string>();
 
             if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) return;
-            foreach(int slot in loadedObjects[ChaControl.fileStatus.coordinateType].Keys)
+            foreach (Asset asset in loadedObjects[ChaControl.fileStatus.coordinateType].Keys.Select(slot => loadedObjects[ChaControl.fileStatus.coordinateType][slot]))
             {
-                Asset asset = loadedObjects[ChaControl.fileStatus.coordinateType][slot];
-                if (!alreadySavedFiles.Contains(asset.sourceFile))
+                if (!alreadySavedFiles.Contains(asset.SourceFile))
                 {
                     AssetFile sFile = new AssetFile();
-                    if (sFile.AutoFill(asset.sourceFile))
+                    if (sFile.AutoFill(asset.SourceFile))
                     {
-                        alreadySavedFiles.Add(asset.sourceFile);
+                        alreadySavedFiles.Add(asset.SourceFile);
                         sourceFiles.Add(sFile);
                     }
-                    List<string> additionalFiles = RAMCacheUtility.GetFileAdditionalFileHashes(asset.sourceFile);
+                    List<string> additionalFiles = RamCacheUtility.GetFileAdditionalFileHashes(asset.SourceFile);
                     if (!additionalFiles.IsNullOrEmpty())
                     {
                         additionalFiles.ForEach(file =>
@@ -392,19 +391,16 @@ namespace AssetImport
 
         private void LoadCoordinateCompatibilityDynamicBoneEditor(int cSet)
         {
-            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)DBoneBackup)
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)_dBoneBackup)
             {
-                if (dboneData.CoordinateIndex == cSet)
-                {
-                    KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                    if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Any(entry => entry.CoordinateIndex.Equals(dboneData.CoordinateIndex)
+                if (dboneData.CoordinateIndex != cSet) continue;
+                KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
+                if (!dBoneController || dBoneController.AccessoryDynamicBoneData.Any(entry =>
+                        entry.CoordinateIndex.Equals(dboneData.CoordinateIndex)
                         && entry.Slot.Equals(dboneData.Slot)
-                        && entry.BoneName.Equals(dboneData.BoneName)))
-                    {
-                        Logger.LogDebug($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
-                        dBoneController.AccessoryDynamicBoneData.Add(dboneData);
-                    }
-                }
+                        && entry.BoneName.Equals(dboneData.BoneName))) continue;
+                Logger.LogDebug($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
+                dBoneController.AccessoryDynamicBoneData.Add(dboneData);
             }
         }
 
@@ -414,45 +410,49 @@ namespace AssetImport
 
             // CoordinateLoadOption compatibilty
             // check if Coordinate Load Option is installed
-            bool cMode = false;
-            List<int> cloImportAccessories = new List<int>(); // slots that are loaded new
+            var cMode = false;
+            var cloImportAccessories = new List<int>(); // slots that are loaded new
             if (Chainloader.PluginInfos.ContainsKey("com.jim60105.kks.coordinateloadoption"))
             {
-                Logger.LogDebug("Coordinate Load Option dedected");
+                Logger.LogDebug("Coordinate Load Option deducted");
                 if (GameObject.Find("CoordinateTooglePanel")?.activeInHierarchy == true)
                 {
                     Logger.LogDebug("Coordinate Load Option enabled");
                     bool? accEnabled = GameObject.Find("CoordinateTooglePanel/accessories")?.GetComponent<Toggle>()?.isOn;
-                    if (accEnabled == true)
+                    switch (accEnabled)
                     {
-                        Logger.LogDebug("Coordinate Load Option accessory load enabled, entering compatibility mode");
-                        cMode = true;
-
-                        if (GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/BtnChangeAccLoadMode")?.GetComponentInChildren<Text>()?.text != "Replace Mode")
+                        case true:
                         {
-                            Logger.LogMessage("Asset Import WARNING: Add Mode is not supported! Stopping asset load");
+                            Logger.LogDebug("Coordinate Load Option accessory load enabled, entering compatibility mode");
+                            cMode = true;
+
+                            if (GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/BtnChangeAccLoadMode")?.GetComponentInChildren<Text>()?.text != "Replace Mode")
+                            {
+                                Logger.LogMessage("Asset Import WARNING: Add Mode is not supported! Stopping asset load");
+                                return;
+                            }
+
+                            GameObject list = GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/scroll/Viewport/Content");
+                            for(int i = 0; i < list.transform.childCount; i++)
+                            {
+                                GameObject item = list.transform.GetChild(i).gameObject;
+                                bool? isOn = item.GetComponent<Toggle>()?.isOn;
+                                bool isEmpty = item.transform.Find("Label")?.gameObject.GetComponent<Text>()?.text == "Empty";
+
+                                if (isOn == true && !isEmpty)
+                                {
+                                    cloImportAccessories.Add(i);
+                                }
+                            }
+
+                            break;
+                        }
+                        case false:
+                        {
+                            Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
+                            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
                             return;
                         }
-
-                        GameObject list = GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/scroll/Viewport/Content");
-                        for(int i = 0; i < list.transform.childCount; i++)
-                        {
-                            GameObject item = list.transform.GetChild(i).gameObject;
-                            bool? isOn = item.GetComponent<Toggle>()?.isOn;
-                            bool isEmpty = item.transform.Find("Label")?.gameObject.GetComponent<Text>()?.text == "Empty";
-
-                            if (isOn == true && !isEmpty)
-                            {
-                                cloImportAccessories.Add(i);
-                            }
-                        }
-
-                    }
-                    else if (accEnabled == false)
-                    {
-                        Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
-                        if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
-                        return;
                     }
                 }
             }
@@ -464,7 +464,7 @@ namespace AssetImport
                 if (GameObject.Find("cosFileControl")?.GetComponentInChildren<ChaCustom.CustomFileWindow>()?.tglCoordeLoadAcs.isOn == false) return;
             }
 
-            coordinateCardNames[cSet] = coordinate.coordinateFileName.Replace(".png", "");
+            CoordinateCardNames[cSet] = coordinate.coordinateFileName.Replace(".png", "");
 
             Logger.LogDebug($"Coordinate Load Started {cSet} on {ChaControl.fileParam.fullname}");
             if (loadedObjects.ContainsKey(cSet) && !cMode)
@@ -474,12 +474,9 @@ namespace AssetImport
             // free slots for loaded accessories while keeping those that should persist
             else if (loadedObjects.ContainsKey(cSet))
             {
-                foreach(int slot in cloImportAccessories)
+                foreach (int slot in cloImportAccessories.Where(slot => loadedObjects[cSet].ContainsKey(slot)))
                 {
-                    if (loadedObjects[cSet].ContainsKey(slot))
-                    {
-                        loadedObjects[cSet].Remove(slot);
-                    }
+                    loadedObjects[cSet].Remove(slot);
                 }
             }
 
@@ -494,7 +491,7 @@ namespace AssetImport
                     if (data != null)
                     {
                         // remove transfer plugindata after load is finished; Coroutine cannot be started on *this* as it's being destroyed by clo too early
-                        Main.instance.StartCoroutine(removeCloTransferPluginData());
+                        Main.instance.StartCoroutine(RemoveCloTransferPluginData());
                     }
                 }
             }
@@ -508,74 +505,81 @@ namespace AssetImport
             }
 
             // keeps track of the hashes for files from this load; only used for v2 -> v3 conversion
-            Dictionary<string, string> filenameToHash = new Dictionary<string, string>();
+            var filenameToHash = new Dictionary<string, string>();
 
             if (version == 2 || version == 3)
             {
-                if (version == 2) // old AssetSource format
+                switch (version)
                 {
-                    List<AssetSource> sourceFiles;
-                    if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                    // old AssetSource format
+                    case 2:
                     {
-                        sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
-                    }
-                    else
-                    {
-                        AssetImport.Logger.LogDebug("No sourceFiles found in extended data.");
-                        return;
-                    }
-                    Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                    foreach (AssetSource sourceFile in sourceFiles)
-                    {
-                        try
+                        List<AssetSource> sourceFiles;
+                        if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
                         {
-                            List<string> extraFileHashes = new List<string>();
-                            // the order is important here! First load all extra files to cache then the main file
-                            for (int i = 0; i < sourceFile.extraFiles.Count; i++)
+                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetSource>>((byte[])filesSerialized);
+                        }
+                        else
+                        {
+                            AssetImport.Logger.LogDebug("No sourceFiles found in extended data.");
+                            return;
+                        }
+                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        foreach (AssetSource sourceFile in sourceFiles)
+                        {
+                            try
                             {
-                                byte[] extraFileData = sourceFile.extraFiles[i];
-                                string extraFileName = sourceFile.extraFileNames[i];
-                                string extraHash = RAMCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
-                                extraFileHashes.Add(extraHash);
-                                filenameToHash.Add(extraFileName, extraHash);
-                            }
-                            // add to cache with reference to the extra files if there are any.
-                            string hash = RAMCacheUtility.ToCache(sourceFile.file, sourceFile.fileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
-                            filenameToHash.Add(sourceFile.fileName, hash);
+                                List<string> extraFileHashes = new List<string>();
+                                // the order is important here! First load all extra files to cache then the main file
+                                for (int i = 0; i < sourceFile.ExtraFiles.Count; i++)
+                                {
+                                    byte[] extraFileData = sourceFile.ExtraFiles[i];
+                                    string extraFileName = sourceFile.ExtraFileNames[i];
+                                    string extraHash = RamCacheUtility.ToCache(extraFileData, extraFileName, null); // extra files do not have extra files themself
+                                    extraFileHashes.Add(extraHash);
+                                    filenameToHash.Add(extraFileName, extraHash);
+                                }
+                                // add to cache with reference to the extra files if there are any.
+                                string hash = RamCacheUtility.ToCache(sourceFile.File, sourceFile.FileName, extraFileHashes.IsNullOrEmpty() ? null : extraFileHashes);
+                                filenameToHash.Add(sourceFile.FileName, hash);
 
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("Error extracting file from scene: " + ex.Message);
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            Logger.LogError("Error extracting file from scene: " + ex.Message);
-                        }
+                        sourceFiles.Clear(); // force garbage colleciton
+                        break;
                     }
-                    sourceFiles.Clear(); // force garbage colleciton
-                }
-                else if (version == 3) // new AssetFile format
-                {
-                    List<AssetFile> sourceFiles;
-                    if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
+                    // new AssetFile format
+                    case 3:
                     {
-                        sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
-                    }
-                    else
-                    {
-                        Logger.LogDebug("No sourceFiles found in extended data.");
-                        return;
-                    }
-                    Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
-                    foreach (AssetFile sourceFile in sourceFiles)
-                    {
-                        try
+                        List<AssetFile> sourceFiles;
+                        if (data.data.TryGetValue("Files", out var filesSerialized) && filesSerialized != null)
                         {
-                            RAMCacheUtility.ToCache(sourceFile);
+                            sourceFiles = MessagePackSerializer.Deserialize<List<AssetFile>>((byte[])filesSerialized);
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Logger.LogError("Error extracting file from scene: " + ex.Message);
+                            Logger.LogDebug("No sourceFiles found in extended data.");
+                            return;
                         }
+                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        foreach (AssetFile sourceFile in sourceFiles)
+                        {
+                            try
+                            {
+                                RamCacheUtility.ToCache(sourceFile);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("Error extracting file from scene: " + ex.Message);
+                            }
+                        }
+                        sourceFiles.Clear(); // force garbage collection
+                        break;
                     }
-                    sourceFiles.Clear(); // force garbage collection
                 }
 
                 // hasnt changed in verion 3
@@ -588,14 +592,14 @@ namespace AssetImport
                         List<Asset> brokenAssets = new List<Asset>();
                         assets.ForEach(asset =>
                         {
-                            if (filenameToHash.TryGetValue(asset.sourceFile, out string hash))
+                            if (filenameToHash.TryGetValue(asset.SourceFile, out string hash))
                             {
-                                asset.sourceFile = hash;
+                                asset.SourceFile = hash;
                             }
                             else
                             {
                                 // should never happen since the file should have been in the loaded file
-                                Logger.LogError($"Asset with filename {asset.sourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
+                                Logger.LogError($"Asset with filename {asset.SourceFile} could not be updated to version 3 because there was no File with the name found in the cache! This asset will not be loaded!");
                                 brokenAssets.Add(asset);
                             }
                         });
@@ -613,14 +617,14 @@ namespace AssetImport
                     if (!loadedObjects.ContainsKey(cSet)) loadedObjects[cSet] = new Dictionary<int, Asset>();
 
                     // ignore Asset Data of accessories that are not being loaded
-                    if (cMode && !cloImportAccessories.Contains(asset.identifier))
+                    if (cMode && !cloImportAccessories.Contains(asset.Identifier))
                     {
-                        Logger.LogDebug($"Compatibilty Mode: Accessory in slot {asset.identifier} is not being loaded -> discarding data.");
+                        Logger.LogDebug($"Compatibilty Mode: Accessory in slot {asset.Identifier} is not being loaded -> discarding data.");
                         continue;
                     }
 
-                    loadedObjects[cSet][asset.identifier] = asset;
-                    Logger.LogDebug($"Loading dat of asset for accessory in slot {asset.identifier}");
+                    loadedObjects[cSet][asset.Identifier] = asset;
+                    Logger.LogDebug($"Loading dat of asset for accessory in slot {asset.Identifier}");
                 }
             }
 
@@ -633,25 +637,21 @@ namespace AssetImport
 
         private void CoordinateLoadOptionDynamicBoneEditor(int cSet, List<int> cloImportAccessories)
         {
-            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)DBoneBackup)
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)_dBoneBackup)
             {
-                if (dboneData.CoordinateIndex == cSet && !cloImportAccessories.Contains(dboneData.Slot))
-                {
-                    KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                    if (dBoneController != null && !dBoneController.AccessoryDynamicBoneData.Contains(dboneData))
-                    {
-                        Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for {dboneData.Slot}");
-                        dBoneController.AccessoryDynamicBoneData.Add(dboneData);
-                    }
-                }
+                if (dboneData.CoordinateIndex != cSet || cloImportAccessories.Contains(dboneData.Slot)) continue;
+                KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
+                if (dBoneController == null || dBoneController.AccessoryDynamicBoneData.Contains(dboneData)) continue;
+                Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for {dboneData.Slot}");
+                dBoneController.AccessoryDynamicBoneData.Add(dboneData);
             }
         }
 
-        private object DBoneBackup;
+        private object _dBoneBackup;
 
         internal void LoadData()
         {
-            if (hasBeenLoadedAlready) return;
+            if (_hasBeenLoadedAlready) return;
             Logger.LogDebug("Reloading Assets");
             int cSet = ChaControl.fileStatus.coordinateType;
             if (!loadedObjects.ContainsKey(cSet)) return;
@@ -659,40 +659,40 @@ namespace AssetImport
             {
                 Asset asset = loadedObjects[cSet][slot];
                 // import asset
-                AccessoryHelper accessory = new AccessoryHelper(ChaControl, ChaControl.GetAccessoryComponent(asset.identifier), asset.identifier);
-                if (accessory.accessory == null)
+                AccessoryHelper accessory = new AccessoryHelper(ChaControl, ChaControl.GetAccessoryComponent(asset.Identifier), asset.Identifier);
+                if (accessory.Accessory == null)
                 {
-                    Logger.LogWarning($"Accessory in slot {asset.identifier} was null");
+                    Logger.LogWarning($"Accessory in slot {asset.Identifier} was null");
                     continue;
                 }
 
                 if (Main.dumpAssets.Value)
                 {
-                    File.WriteAllBytes(Path.Combine(getDumpPath(cSet), RAMCacheUtility.GetFileName(asset.sourceFile)), RAMCacheUtility.GetFileBlob(asset.sourceFile));
+                    File.WriteAllBytes(Path.Combine(GetDumpPath(cSet), RamCacheUtility.GetFileName(asset.SourceFile)), RamCacheUtility.GetFileBlob(asset.SourceFile));
                 }
 
                 Import import = new Import(
-                    asset.sourceFile,
-                    asset.hasBones,
-                    Instantiate(accessory.accessory.gameObject.GetComponentInChildren<Renderer>().material),
-                    asset.doFbxTranslation,
-                    asset.perRendererMaterials);
+                    asset.SourceFile,
+                    asset.HasBones,
+                    Instantiate(accessory.Accessory.gameObject.GetComponentInChildren<Renderer>().material),
+                    asset.DoFbxTranslation,
+                    asset.PerRendererMaterials);
                 import.Load();
-                if (import == null || !import.isLoaded)
+                if (!import.IsLoaded)
                 {
-                    Logger.LogError($"Loading {asset.sourceFile} from cache failed");
+                    Logger.LogError($"Loading {asset.SourceFile} from cache failed");
                     continue;
                 }
-                foreach (int idx in asset.dynamicBoneIndices)
+                foreach (int idx in asset.DynamicBoneIndices)
                 {
-                    import.boneNodes[idx].setDynamic(true);
+                    import.BoneNodes[idx].SetDynamic(true);
                 }
                 LoadProcess loadProcess = new LoadProcess(
-                    accessory.accessory.gameObject,
+                    accessory.Accessory.gameObject,
                     accessory,
                     import,
-                    new Vector3(asset.scale[0], asset.scale[1], asset.scale[2]),
-                    LoadProcess.loadProcessKind.LOAD);
+                    new Vector3(asset.Scale[0], asset.Scale[1], asset.Scale[2]),
+                    LoadProcess.LoadProcessKind.Load);
 
                 FinishLoadProcess(loadProcess);
             }
@@ -702,29 +702,28 @@ namespace AssetImport
             if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) DynamicBoneEditorBackup();
 
             BoneController boneController = ChaControl.gameObject.GetComponentInChildren<BoneController>();
-            if (boneController != null) boneController.NeedsFullRefresh = true;
+            if (boneController) boneController.NeedsFullRefresh = true;
             
-            hasBeenLoadedAlready = true;
-            this.StartCoroutine(resetLoadedAlready());
+            _hasBeenLoadedAlready = true;
+            this.StartCoroutine(ResetLoadedAlready());
         }
 
         private void DynamicBoneEditorBackup()
         {
-            if (DBoneBackup == null) DBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>();
-            if (ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>() != null && DBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)
-            {
-                ChaControl.StartCoroutine(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>()?.ApplyData());
-                // backup current dynamic bone editor data for potential coordinate load option load
-                backup.AddRange(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>().AccessoryDynamicBoneData);
-            }
+            if (_dBoneBackup == null) _dBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>();
+            if (!ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>() ||
+                !(_dBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)) return;
+            ChaControl.StartCoroutine(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>()?.ApplyData());
+            // backup current dynamic bone editor data for potential coordinate load option load
+            backup.AddRange(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>().AccessoryDynamicBoneData);
         }
 
-        private void renameAccessory(int slot, string name)
+        private void RenameAccessory(int slot, string newName)
         {
             ListInfoComponent infoComponent = ChaControl.GetAccessoryComponent(slot).gameObject.GetComponent<ListInfoComponent>();
-            if (infoComponent == null || ChaControl.infoAccessory.IsNullOrEmpty()) return;
+            if (!infoComponent || ChaControl.infoAccessory.IsNullOrEmpty()) return;
             ListInfoBase listInfoBase = ChaControl.infoAccessory[slot].Clone();
-            listInfoBase.dictInfo[41] = name;
+            listInfoBase.dictInfo[41] = newName;
             infoComponent.data = listInfoBase;
             ChaControl.infoAccessory[slot] = listInfoBase;
         }
@@ -738,7 +737,7 @@ namespace AssetImport
             Logger.LogDebug($"Accessory Import started on slot {slot} with type [{type}] and parentNode [{parent}]");
 
             ChaAccessoryComponent accessory = ChaControl.GetAccessoryComponent(slot);
-            if (accessory == null)
+            if (!accessory)
             {
                 Logger.LogMessage("Please specify a Type and Parent by choosing a normal accessory first.");
                 return;
@@ -746,111 +745,109 @@ namespace AssetImport
 
             Logger.LogInfo($"Importing [{path}] started...");
 
-            GameObject _base = accessory.gameObject;
-            Material _baseMaterial = Instantiate(_base.GetComponentInChildren<Renderer>().material);
+            GameObject baseObject = accessory.gameObject;
+            Material baseMaterial = Instantiate(baseObject.GetComponentInChildren<Renderer>().material);
 
-            string identifierHash = RAMCacheUtility.ToCache(path);
+            string identifierHash = RamCacheUtility.ToCache(path);
 
             if (Main.dumpAssets.Value)
             {
-                File.WriteAllBytes(Path.Combine(getDumpPath(), Path.GetFileName(path)), RAMCacheUtility.GetFileBlob(identifierHash));
+                File.WriteAllBytes(Path.Combine(GetDumpPath(), Path.GetFileName(path)), RamCacheUtility.GetFileBlob(identifierHash));
             }
 
             Import import = new Import(
                 identifierHash,
                 armature, 
-                _baseMaterial, 
+                baseMaterial, 
                 doFbxTranslation, 
                 perRendererMaterials
             );
             import.Load();
-            if (!import.isLoaded) return;
+            if (!import.IsLoaded) return;
 
             AccessoryHelper helper = new AccessoryHelper(ChaControl, accessory, slot);
-            Main.currentLoadProcess = new LoadProcess(_base, helper, import, scale, LoadProcess.loadProcessKind.NORMAL);
-            AssetUI.armatureMode = Main.currentLoadProcess.import.hasBones;
-            AssetUI.commonPathText = import.commonPath;
-            AssetUI.preloadUI = true;
+            Main.currentLoadProcess = new LoadProcess(baseObject, helper, import, scale, LoadProcess.LoadProcessKind.Normal);
+            AssetUI.ArmatureMode = Main.currentLoadProcess.Import.HasBones;
+            AssetUI.CommonPathText = import.CommonPath;
+            AssetUI.PreloadUI = true;
         }
 
         internal void FinishLoadProcess(LoadProcess loadProcess)
         {
-            AssetUI.preloadUI = false;
+            AssetUI.PreloadUI = false;
 
-            Import import = loadProcess.import;
-            GameObject _base = loadProcess._base;
-            if (!(loadProcess.component is AccessoryHelper accessory)) return;
+            Import import = loadProcess.Import;
+            GameObject loadProcessBase = loadProcess.BaseGameObject;
+            if (!(loadProcess.Component is AccessoryHelper accessory)) return;
 
-            for (int i = _base.transform.FindLoop("N_move").transform.childCount; i > 0; i--)
+            for (int i = loadProcessBase.transform.FindLoop("N_move").transform.childCount; i > 0; i--)
             {
-                DestroyImmediate(_base.transform.FindLoop("N_move").transform.GetChild(i - 1).gameObject);
+                DestroyImmediate(loadProcessBase.transform.FindLoop("N_move").transform.GetChild(i - 1).gameObject);
             }
 
             // destory secondary accessory object if it exists
-            int siblingIndex = _base.transform.FindLoop("N_move").transform.parent.GetSiblingIndex();
-            for (int i = _base.transform.childCount-1; i >= 0; i--)
+            int siblingIndex = loadProcessBase.transform.FindLoop("N_move").transform.parent.GetSiblingIndex();
+            for (int i = loadProcessBase.transform.childCount-1; i >= 0; i--)
             {
                 if (i == siblingIndex) continue;
-                DestroyImmediate(_base.transform.GetChild(i).gameObject);
+                DestroyImmediate(loadProcessBase.transform.GetChild(i).gameObject);
                 Singleton<ChaCustom.CvsAccessory>.Instance?.UpdateCustomUI();
             }
 
-            Vector3 scale = accessory.addMove[0, 2];
+            Vector3 scale = accessory.AddMove[0, 2];
 
             // set imported gameObject as child of base
-            GameObject _object = import.gameObject;
-            _object.transform.parent = _base.transform.FindLoop("N_move").transform;
-            _object.transform.localPosition = Vector3.zero;
-            _object.transform.localRotation = Quaternion.identity;
-            _object.transform.localScale = Vector3.one;
+            GameObject importObject = import.GameObject;
+            importObject.transform.parent = loadProcessBase.transform.FindLoop("N_move").transform;
+            importObject.transform.localPosition = Vector3.zero;
+            importObject.transform.localRotation = Quaternion.identity;
+            importObject.transform.localScale = Vector3.one;
 
             // renderers
-            accessory.rendNormal = import.renderers.ToArray();
-            accessory.rendAlpha = new Renderer[0];
+            accessory.RendNormal = import.Renderers.ToArray();
+            accessory.RendAlpha = Array.Empty<Renderer>();
 
             // name (experimental, does not yet behave as intended)
-            renameAccessory(accessory.slot, import.sourceFileName);
+            RenameAccessory(accessory.Slot, import.SourceFileName);
             Singleton<ChaCustom.CustomAcsChangeSlot>.Instance?.UpdateSlotNames();
 
             // remove dynamic bones that might exist
-            foreach (DynamicBone bone in _base.GetComponents<DynamicBone>())
+            foreach (DynamicBone bone in loadProcessBase.GetComponents<DynamicBone>())
             {
                 DestroyImmediate(bone);
             }
 
             // dynamic bones
-            if (import.hasBones)
+            if (import.HasBones)
             {
-                int dBones = 0;
-                foreach (BoneNode node in import.boneNodes)
+                var dBones = 0;
+                foreach (BoneNode node in import.BoneNodes)
                 {
-                    if (node.isDynamicRoot)
-                    {
-                        DynamicBone dBone = _base.AddComponent<DynamicBone>();
-                        dBone.enabled = false;
-                        dBone.m_Root = node.gameObject.transform;
-                        dBone.m_notRolls = new List<Transform>();
-                        dBone.m_Colliders = new List<DynamicBoneCollider>();
-                        dBone.enabled = true;
-                        dBones++;
-                    }
+                    if (!node.IsDynamicRoot) continue;
+                    DynamicBone dBone = loadProcessBase.AddComponent<DynamicBone>();
+                    dBone.enabled = false;
+                    dBone.m_Root = node.GameObject.transform;
+                    dBone.m_notRolls = new List<Transform>();
+                    dBone.m_Colliders = new List<DynamicBoneCollider>();
+                    dBone.enabled = true;
+                    dBones++;
                 }
                 if (dBones > 0)
                 {
-                    Logger.LogDebug($"Activated {dBones} dynamic bone chains on {loadProcess.import.sourceFileName}");
+                    Logger.LogDebug($"Activated {dBones} dynamic bone chains on {loadProcess.Import.SourceFileName}");
                 }
             }
 
-            if (loadProcess.kind == LoadProcess.loadProcessKind.NORMAL)
+            if (loadProcess.Kind == LoadProcess.LoadProcessKind.Normal)
             {
-                foreach (Material mat in import.materialTextures.Keys)
+                foreach (Material mat in import.MaterialTextures.Keys)
                 {
-                    foreach (TexturePath p in import.materialTextures[mat])
+                    foreach (TexturePath p in import.MaterialTextures[mat])
                     {
-                        if (!p.use || !p.pathOkay()) continue;
-                        byte[] data = File.ReadAllBytes(p.path);
-                        string prop = "";
-                        switch (p.type)
+                        if (!p.Use || !p.PathOkay()) continue;
+                        byte[] data = File.ReadAllBytes(p.Path);
+                        var prop = "";
+                        switch (p.Type)
                         {
                             case Assimp.TextureType.Diffuse:
                                 prop = "MainTex";
@@ -861,45 +858,47 @@ namespace AssetImport
                             default:
                                 break;
                         }
-                        Singleton<KK_Plugins.MaterialEditor.MaterialEditorCharaController>.Instance.SetMaterialTexture(
-                            accessory.slot,
+                        Singleton<KK_Plugins.MaterialEditor.MaterialEditorCharaController>.Instance?.SetMaterialTexture(
+                            accessory.Slot,
                             KK_Plugins.MaterialEditor.MaterialEditorCharaController.ObjectType.Accessory,
-                            p.material,
+                            p.Material,
                             prop,
                             data,
-                            _object);
-                        Logger.LogDebug($"Set Texture on {p.material.name} - {prop}");
+                            importObject);
+                        Logger.LogDebug($"Set Texture on {p.Material.name} - {prop}");
                     }
                 }
             }
 
-            Vector3 s = _object.transform.localScale;
-            _object.transform.localScale = new Vector3(s.x * loadProcess.scale.x, s.y * loadProcess.scale.y, s.z * loadProcess.scale.z);
-            _object.transform.localRotation *= Quaternion.Euler(new Vector3(0, 180, 0));
+            Vector3 s = importObject.transform.localScale;
+            importObject.transform.localScale = new Vector3(s.x * loadProcess.Scale.x, s.y * loadProcess.Scale.y, s.z * loadProcess.Scale.z);
+            importObject.transform.localRotation *= Quaternion.Euler(new Vector3(0, 180, 0));
 
-            if (loadProcess.kind == LoadProcess.loadProcessKind.NORMAL)
+            if (loadProcess.Kind == LoadProcess.LoadProcessKind.Normal)
             {
-                Asset asset = new Asset();
-                asset.sourceFile = loadProcess.import.sourceIdentifier;
-                asset.dynamicBoneIndices = new List<int>();
-                for (int i = 0; i < import.boneNodes.Count; i++)
+                Asset asset = new Asset
                 {
-                    BoneNode node = import.boneNodes[i];
-                    if (node.isDynamicRoot) asset.dynamicBoneIndices.Add(i);
+                    SourceFile = loadProcess.Import.SourceIdentifier,
+                    DynamicBoneIndices = new List<int>()
+                };
+                for (int i = 0; i < import.BoneNodes.Count; i++)
+                {
+                    BoneNode node = import.BoneNodes[i];
+                    if (node.IsDynamicRoot) asset.DynamicBoneIndices.Add(i);
                 }
-                asset.identifier = accessory.slot;
-                asset.scale = new float[] { loadProcess.scale.x, loadProcess.scale.y, loadProcess.scale.z };
-                asset.hasBones = loadProcess.import.hasBones;
-                asset.perRendererMaterials = loadProcess.import.perRendererMaterials;
-                asset.doFbxTranslation = loadProcess.import.doFbxTranslation;
+                asset.Identifier = accessory.Slot;
+                asset.Scale = new float[] { loadProcess.Scale.x, loadProcess.Scale.y, loadProcess.Scale.z };
+                asset.HasBones = loadProcess.Import.HasBones;
+                asset.PerRendererMaterials = loadProcess.Import.PerRendererMaterials;
+                asset.DoFbxTranslation = loadProcess.Import.DoFbxTranslation;
 
                 if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) loadedObjects[ChaControl.fileStatus.coordinateType] = new Dictionary<int, Asset>();
-                loadedObjects[ChaControl.fileStatus.coordinateType][asset.identifier] = asset;
+                loadedObjects[ChaControl.fileStatus.coordinateType][asset.Identifier] = asset;
             }
 
-            ChaControl.ChangeAccessoryColor(accessory.slot);
+            ChaControl.ChangeAccessoryColor(accessory.Slot);
 
-            Logger.LogInfo($"Asset [{loadProcess.import.sourceFileName}] was loaded successfully");
+            Logger.LogInfo($"Asset [{loadProcess.Import.SourceFileName}] was loaded successfully");
         }
     }
 }

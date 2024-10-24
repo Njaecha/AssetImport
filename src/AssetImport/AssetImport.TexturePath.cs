@@ -8,30 +8,30 @@ namespace AssetImport
     public class TexturePath
     {
         private string _path = "";
-        public UnityEngine.Material material { get; set; }
-        public Assimp.TextureType type { get; set; }
-        public string file { get; private set; }
-        public bool use { get; set; } = false;
-        public string path { set => setPath(value); get => _path; }
+        public UnityEngine.Material Material { get; set; }
+        public Assimp.TextureType Type { get; set; }
+        public string File { get; private set; }
+        public bool Use { get; set; } = false;
+        public string Path { set => SetPath(value); get => _path; }
 
-        public TexturePath(UnityEngine.Material _material, Assimp.TextureType _type, string texturePath)
+        public TexturePath(UnityEngine.Material material, Assimp.TextureType type, string texturePath)
         {
-            type = _type;
-            material = _material;
-            setPath(texturePath);
+            Type = type;
+            Material = material;
+            SetPath(texturePath);
         }
 
-        private void setPath(string texturePath)
+        private void SetPath(string texturePath)
         {
             string oldPath = _path;
             _path = texturePath.Replace("\\", "/");
-            file = Path.GetFileName(texturePath);
-            if (oldPath != texturePath && pathOkay()) use = true;
+            File = System.IO.Path.GetFileName(texturePath);
+            if (oldPath != texturePath && PathOkay()) Use = true;
         }
 
-        public bool pathOkay()
+        public bool PathOkay()
         {
-            return File.Exists(_path) && (file.EndsWith(".png") || file.EndsWith(".jpg"));
+            return System.IO.File.Exists(_path) && (File.EndsWith(".png") || File.EndsWith(".jpg"));
         }
     }
 }

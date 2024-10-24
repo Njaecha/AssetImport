@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using KKAPI;
 using KKAPI.Studio.SaveLoad;
@@ -9,14 +10,14 @@ using System.Reflection.Emit;
 
 namespace AssetImport
 {
-    class Hooks
+    internal class Hooks
     {
         [HarmonyPostfix, HarmonyPatch(typeof(Studio.SceneInfo), nameof(Studio.SceneInfo.Load), new Type[]{typeof(string)})]
         private static void SceneLoadHook(string _path)
         {
             _path = _path.Replace("\\", "/");
             AssetImport.Logger.LogDebug("Scene name registered: "+ _path.Substring(_path.LastIndexOf("/") + 1, _path.Length - _path.LastIndexOf("/")-1));
-            AssetImport.asc.sceneName = _path.Substring(_path.LastIndexOf("/") + 1, _path.Length - _path.LastIndexOf("/") - 1);
+            AssetImport.asc.SceneName = _path.Substring(_path.LastIndexOf("/") + 1, _path.Length - _path.LastIndexOf("/") - 1);
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.SceneController), "OnSceneLoad")]
@@ -50,19 +51,15 @@ namespace AssetImport
         {
             var code = new List<CodeInstruction>(instructions);
             object accessoriesLdfldOperant = null;
-            object thisLdfldOperant = null;
 
-            foreach(CodeInstruction c in code)
+            foreach (CodeInstruction c in code.Where(c => c != null).Where(c => c.operand != null))
             {
-                if (c == null) continue;
-                if (c.operand == null) continue;
                 if  (c.operand.ToString().Equals("System.Boolean accessories"))
                 {
                     accessoriesLdfldOperant = c.operand;
                 }
                 if (c.operand.ToString().Contains("__this"))
                 {
-                    thisLdfldOperant = c.operand;
                 }
             }
 
@@ -82,7 +79,7 @@ namespace AssetImport
         }
 
         [HarmonyPrefix, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "OnReload")]
-        private static void MaterialEdtiorCharacterLoadHook(GameMode currentGameMode, bool maintainState, KK_Plugins.MaterialEditor.MaterialEditorCharaController __instance)
+        private static void MaterialEditorCharacterLoadHook(GameMode currentGameMode, bool maintainState, KK_Plugins.MaterialEditor.MaterialEditorCharaController __instance)
         {
             __instance?.ChaControl?.gameObject.GetComponentInChildren<AssetCharaController>()?.LoadCharacter(currentGameMode, maintainState);
         }

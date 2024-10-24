@@ -10,18 +10,18 @@ namespace AssetImport
     public class Asset
     {
         [Key("SourceFile")]
-        public string sourceFile { get; set; }
+        public string SourceFile { get; set; }
         [Key("BoneIndices")]
-        public List<int> dynamicBoneIndices { get; set; }
+        public List<int> DynamicBoneIndices { get; set; }
         [Key("ObjectKey")]
-        public int identifier { get; set; } // in Studio: dictKey | on Character: AccessorySlot
+        public int Identifier { get; set; } // in Studio: dictKey | on Character: AccessorySlot
         [Key("Scale")]
-        public float[] scale { get; set; } = new float[3];
+        public float[] Scale { get; set; } = new float[3];
         [Key("HasBones")]
-        public bool hasBones { get; set; }
+        public bool HasBones { get; set; }
         [Key("perRendererMaterials")]
-        public bool perRendererMaterials { get; set; } = false;
+        public bool PerRendererMaterials { get; set; } = false;
         [Key("doFbxTranslation")]
-        public bool doFbxTranslation { get; set; } = false;
+        public bool DoFbxTranslation { get; set; } = false;
     }
 }

@@ -8,101 +8,90 @@ namespace AssetImport
     /// </summary>
     public class BoneNode
     {
-        public GameObject gameObject { get; private set; }
-        public BoneNode parent { get; private set; }
-        public List<BoneNode> children { get; private set; } = new List<BoneNode>();
-        public int depth { get; set; }
-        public bool isDynamicRoot { get; private set; } = false;
-        public bool nodeOpen { get; set; } = true;
-        public bool isDynamic { get; private set; } = false;
-        public bool uiActive { get; private set; } = true;
-        public int dynamicChainLength { get; private set; } = 0;
+        public GameObject GameObject { get; private set; }
+        public BoneNode Parent { get; private set; }
+        public List<BoneNode> Children { get; private set; } = new List<BoneNode>();
+        public int Depth { get; set; }
+        public bool IsDynamicRoot { get; private set; } = false;
+        public bool NodeOpen { get; set; } = true;
+        public bool IsDynamic { get; private set; } = false;
+        public bool UIActive { get; private set; } = true;
+        public int DynamicChainLength { get; private set; } = 0;
 
-        private DynamicRootProperties properties;
+        private DynamicRootProperties _properties;
 
         public BoneNode(GameObject bone, BoneNode parent = null, int depth = 0)
         {
-            this.gameObject = bone;
-            this.depth = depth;
-            this.parent = parent;
-            if (parent != null)
-            {
-                parent.addChild(this);
-            }
+            this.GameObject = bone;
+            this.Depth = depth;
+            this.Parent = parent;
+            parent?.AddChild(this);
         }
 
-        public void addChild(BoneNode child)
+        public void AddChild(BoneNode child)
         {
-            children.Add(child);
+            Children.Add(child);
         }
 
-        public DynamicRootProperties getDynamicBoneProperties()
+        public DynamicRootProperties GetDynamicBoneProperties()
         {
-            if (!isDynamicRoot) return null;
-            if (properties == null) properties = new DynamicRootProperties(dynamicChainLength);
-            return properties;
+            if (!IsDynamicRoot) return null;
+            return _properties ?? (_properties = new DynamicRootProperties(DynamicChainLength));
         }
 
-        public void setDynamic(bool active, bool subBone = false, BoneNode root = null)
+        public void SetDynamic(bool active, bool subBone = false, BoneNode root = null)
         {
-            if (parent != null && parent.isDynamic && !subBone) return;
-            if (children.Count > 0 && children[0].dynamicBoneInChildren()) return;
+            if (Parent != null && Parent.IsDynamic && !subBone) return;
+            if (Children.Count > 0 && Children[0].DynamicBoneInChildren()) return;
             if (!subBone)
             {
-                isDynamicRoot = active;
-                dynamicChainLength = 1;
+                IsDynamicRoot = active;
+                DynamicChainLength = 1;
                 root = this;
             }
-            else root.dynamicChainLength++;
-            isDynamic = active;
-            if (children.Count > 0)
+            else if (root != null) root.DynamicChainLength++;
+
+            IsDynamic = active;
+            if (Children.Count > 0)
             {
-                children[0].setDynamic(active, true, root);
+                Children[0].SetDynamic(active, true, root);
             }
         }
 
-        public void setUiActive(bool active)
+        public void SetUiActive(bool active)
         {
-            if (active && parent != null && !parent.nodeOpen) return;
-            uiActive = active;
-            if (children.Count > 0)
+            if (active && Parent != null && !Parent.NodeOpen) return;
+            UIActive = active;
+            if (Children.Count <= 0) return;
+            foreach(BoneNode child in Children)
             {
-                foreach(BoneNode child in children)
-                {
-                    child.setUiActive(active);
-                }
+                child.SetUiActive(active);
             }
         }
 
-        public void setNodeOpen(bool open)
+        public void SetNodeOpen(bool open)
         {
-            nodeOpen = open;
-            if (children.Count > 0)
+            NodeOpen = open;
+            if (Children.Count <= 0) return;
+            foreach(BoneNode child in Children)
             {
-                foreach(BoneNode child in children)
-                {
-                    child.setUiActive(open);
-                }
+                child.SetUiActive(open);
             }
         }
 
-        public bool dynamicBoneInChildren()
+        public bool DynamicBoneInChildren()
         {
-            if (isDynamicRoot) return true;
-            if (children.Count > 0)
-            {
-                return children[0].dynamicBoneInChildren();
-            }
-            return false;
+            if (IsDynamicRoot) return true;
+            return Children.Count > 0 && Children[0].DynamicBoneInChildren();
         }
 
         public class DynamicRootProperties
         {
-            public readonly int chainLength;
+            public readonly int ChainLength;
 
-            public List<DynamicBoneCollider> colliders = new List<DynamicBoneCollider>();
+            public readonly List<DynamicBoneCollider> Colliders = new List<DynamicBoneCollider>();
 
-            public float weight = 1f;
+            public float Weight = 1f;
 
             [Range(0f, 1f)]
             public float dampening = 0.1f;
@@ -129,29 +118,29 @@ namespace AssetImport
 
             public DynamicRootProperties(int length)
             {
-                this.chainLength = length;
-                this.dampeningDistrib = new AnimationCurve(createDefaultKeyframeValues());
-                this.elasticityDistrib = new AnimationCurve(createDefaultKeyframeValues());
-                this.stiffnessDistrib = new AnimationCurve(createDefaultKeyframeValues());
-                this.inertiaDistrib = new AnimationCurve(createDefaultKeyframeValues());
-                this.radiusDistrib = new AnimationCurve(createDefaultKeyframeValues());
+                this.ChainLength = length;
+                this.dampeningDistrib = new AnimationCurve(CreateDefaultKeyframeValues());
+                this.elasticityDistrib = new AnimationCurve(CreateDefaultKeyframeValues());
+                this.stiffnessDistrib = new AnimationCurve(CreateDefaultKeyframeValues());
+                this.inertiaDistrib = new AnimationCurve(CreateDefaultKeyframeValues());
+                this.radiusDistrib = new AnimationCurve(CreateDefaultKeyframeValues());
             }
 
-            private Keyframe[] createDefaultKeyframeValues()
+            private Keyframe[] CreateDefaultKeyframeValues()
             {
-                Keyframe[] frames = new Keyframe[chainLength];
-                for(int i = 0; i < chainLength; i++)
+                Keyframe[] frames = new Keyframe[ChainLength];
+                for(int i = 0; i < ChainLength; i++)
                 {
                     frames[i] = new Keyframe(i, 1);
                 }
                 return frames;
             }
 
-            public void populateDynamicBone(DynamicBone bone, Transform rootTransform)
+            public void PopulateDynamicBone(DynamicBone bone, Transform rootTransform)
             {
                 bone.m_Root = rootTransform;
                 bone.m_notRolls = new List<Transform>();
-                bone.m_Colliders = colliders;
+                bone.m_Colliders = Colliders;
                 bone.m_Elasticity = elasticity;
                 bone.m_ElasticityDistrib = elasticityDistrib;
                 bone.m_Damping = dampening;

@@ -11,13 +11,13 @@ namespace AssetImport
     public class AssetSource
     {
         [Key("Data")]
-        public byte[] file { get; set; }
+        public byte[] File { get; set; }
         [Key("Name")]
-        public string fileName { get; set; }
+        public string FileName { get; set; }
         [Key("ExtraFileData")]
-        public List<byte[]> extraFiles { get; set; } = new List<byte[]>();
+        public List<byte[]> ExtraFiles { get; set; } = new List<byte[]>();
         [Key("ExtraFileNames")]
-        public List<string> extraFileNames { get; set; } = new List<string>();
+        public List<string> ExtraFileNames { get; set; } = new List<string>();
 
         /// <summary>
         /// As of version 3.0.0 this is a stub
@@ -52,25 +52,25 @@ namespace AssetImport
     public class AssetFile
     {
         [Key("Data")]
-        public byte[] file { get; set; }
+        public byte[] File { get; set; }
         [Key("Name")]
-        public string fileName { get; set; }
+        public string FileName { get; set; }
         [Key("Hash")]
-        public string hash { get; set; }
+        public string Hash { get; set; }
 
         [Key("Related")]
-        public List<string> relatedFiles { get; set; }
+        public List<string> RelatedFiles { get; set; }
 
         public bool AutoFill(string hashIdentifier)
         {
-            file = RAMCacheUtility.GetFileBlob(hashIdentifier);
-            if (file == null)
+            File = RamCacheUtility.GetFileBlob(hashIdentifier);
+            if (File == null)
             {
                 return false;
             }
-            fileName = RAMCacheUtility.GetFileName(hashIdentifier);
-            relatedFiles = RAMCacheUtility.GetFileAdditionalFileHashes(hashIdentifier);
-            hash = hashIdentifier;
+            FileName = RamCacheUtility.GetFileName(hashIdentifier);
+            RelatedFiles = RamCacheUtility.GetFileAdditionalFileHashes(hashIdentifier);
+            Hash = hashIdentifier;
             return true;
         }
     }
