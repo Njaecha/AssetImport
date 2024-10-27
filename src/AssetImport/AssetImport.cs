@@ -62,7 +62,7 @@ namespace AssetImport
         {
             int dSlot = e.DestinationSlotIndex;
             int sSlot = e.SourceSlotIndex;
-            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().accessoryTransferedEvent(sSlot, dSlot);
+            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().AccessoryTransferedEvent(sSlot, dSlot);
         }
 
         private void AccessoryCopied(object sender, KKAPI.Maker.AccessoryCopyEventArgs e)
@@ -70,13 +70,13 @@ namespace AssetImport
             ChaFileDefine.CoordinateType dType = e.CopyDestination;
             ChaFileDefine.CoordinateType sType = e.CopySource;
             IEnumerable<int> slots = e.CopiedSlotIndexes;
-            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().accessoryCopiedEvent((int)sType, (int)dType, slots);
+            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().AccessoryCopiedEvent((int)sType, (int)dType, slots);
         }
 
         private void AccessoryKindChanged(object sender, KKAPI.Maker.AccessorySlotEventArgs e)
         {
             int slot = e.SlotIndex;
-            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().accessoryChangeEvent(slot);
+            KKAPI.Maker.MakerAPI.GetCharacterControl().gameObject.GetComponent<AssetCharaController>().AccessoryChangeEvent(slot);
         }
     }
 }

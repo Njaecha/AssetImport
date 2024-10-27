@@ -158,7 +158,6 @@
     <Compile Include="AssetImport.Hooks.cs" />
     <Compile Include="AssetImport.Import.cs" />
     <Compile Include="AssetImport.LoadProcess.cs" />
-    <Compile Include="AssetImport.Package.cs" />
     <Compile Include="AssetImport.SceneController.cs" />
     <Compile Include="AssetImport.TexturePath.cs" />
     <Compile Include="AssetImport.UI.cs" />

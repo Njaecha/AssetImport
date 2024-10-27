@@ -1,91 +1,88 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
+using System.Linq;
 using UnityEngine;
 using KKAPI;
 using KKAPI.Maker;
+using Sirenix.Serialization.Utilities;
 using Main = AssetImport.AssetImport;
+// ReSharper disable UseObjectOrCollectionInitializer
 
 namespace AssetImport
 {
     /// <summary>
     /// Everything IMGUI
     /// </summary>
-    class AssetUI : MonoBehaviour
+    internal class AssetUI : MonoBehaviour
     {
         // UI
         // main
-        internal static bool uiActive = false;
-        internal static Rect mainWindowRect = new Rect(500, 40, 240, 140);
-        internal static string filePath = "";
-        internal static int scaleSelection = 4;
-        internal static float[] scales = { 10f, 5f, 2f, 1.5f, 1.0f, 0.5f, 0.1f, 0.01f, 0.001f, 0.0001f };
-        internal static bool importBones = false;
-        internal static bool perRendererMaterials = false;
-        internal static bool doFbxTranslation = false;
-        internal static Dictionary<int, Import> objectKeysStudio = new Dictionary<int, Import>();
-        // maker specific
-        internal static int accType = 0;
-        internal static int parentNode = 0;
-
+        internal static bool UIActive;
+        internal static Rect MainWindowRect = new Rect(500, 40, 240, 140);
+        internal static string FilePath = "";
+        internal static int ScaleSelection = 4;
+        internal static readonly float[] Scales = { 10f, 5f, 2f, 1.5f, 1.0f, 0.5f, 0.1f, 0.01f, 0.001f, 0.0001f };
+        internal static bool ImportBones;
+        internal static bool PerRendererMaterials;
+        internal static bool DoFbxTranslation;
+        
         // preload
-        internal static bool preloadUI = false;
-        internal static Rect preloadWinodwRect = new Rect(Screen.width / 2 - 250, Screen.height / 2 - 350, 500, 600);
-        internal static Vector2 scrollPosition = Vector2.zero;
-        internal static bool armatureMode = false;
-        internal Texture2D buttonBase, buttonHover, buttonPressed;
-        internal static string commonPathText;
-        internal static bool replacer = false;
-        internal static string replaceString = null;
-        internal static string replaceWith = "";
+        internal static bool PreloadUI = false;
+        internal static Rect PreloadWindowRect = new Rect(Screen.width / 2f - 250, Screen.height / 2f - 350, 500, 600);
+        internal static Vector2 ScrollPosition = Vector2.zero;
+        internal static bool ArmatureMode;
+        private Texture2D _buttonBase;
+        private Texture2D _buttonHover;
+        internal Texture2D ButtonPressed;
+        internal static string CommonPathText;
+        internal static bool Replacer;
+        internal static string ReplaceString;
+        internal static string ReplaceWith = "";
 
-        internal static KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags SingleFileFlags =
-                KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_FILEMUSTEXIST |
-                KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_LONGNAMES |
-                KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_EXPLORER;
+        private const KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags SingleFileFlags = KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_FILEMUSTEXIST | KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_LONGNAMES | KKAPI.Utilities.OpenFileDialog.OpenSaveFileDialgueFlags.OFN_EXPLORER;
 
 
         void Awake()
         {
             // setup textures
-            float w = 84f / 255f;
-            buttonBase = colorTexture(new Color(w, w, w));
-            buttonHover = colorTexture(new Color(w + 0.2f, w + 0.2f, w + 0.2f));
-            buttonPressed = colorTexture(new Color(w + 0.3f, w + +0.3f, w + 0.3f));
+            const float w = 84f / 255f;
+            _buttonBase = ColorTexture(new Color(w, w, w));
+            _buttonHover = ColorTexture(new Color(w + 0.2f, w + 0.2f, w + 0.2f));
+            ButtonPressed = ColorTexture(new Color(w + 0.3f, w + +0.3f, w + 0.3f));
         }
 
         void Update()
         {
-            if (Main.hotkey.Value.IsDown() && (KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Studio))
+            if (Main.hotkey.Value.IsDown() && (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KoikatuAPI.GetCurrentGameMode() == GameMode.Studio))
             {
-                uiActive = !uiActive;
+                UIActive = !UIActive;
                 return;
             }
             if (KoikatuAPI.GetCurrentGameMode() != GameMode.Studio && KoikatuAPI.GetCurrentGameMode() != GameMode.Maker)
-                uiActive = false;
+                UIActive = false;
     
         }
 
         void OnGUI()
         {
-            if (!(KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)) return;
-            if (uiActive)
+            if (!(KoikatuAPI.GetCurrentGameMode() == GameMode.Maker || KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)) return;
+            if (UIActive)
             {
-                mainWindowRect = GUI.Window(33361, mainWindowRect, WindowFunction, "Asset Import v" + Main.Version);
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(mainWindowRect);
+                MainWindowRect = GUI.Window(33361, MainWindowRect, WindowFunction, "Asset Import v" + Main.Version);
+                KKAPI.Utilities.IMGUIUtils.EatInputInRect(MainWindowRect);
             }
-            if (preloadUI)
+            if (PreloadUI)
             {
-                preloadWinodwRect = GUI.Window(
+                PreloadWindowRect = GUI.Window(
                     33362,
-                    preloadWinodwRect,
-                    preLoadWindowFunction,
-                    Main.currentLoadProcess.import.sourceFileName,
+                    PreloadWindowRect,
+                    PreLoadWindowFunction,
+                    Main.currentLoadProcess.Import.SourceFileName,
                     KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.window
                 );
-                KKAPI.Utilities.IMGUIUtils.EatInputInRect(preloadWinodwRect);
+                KKAPI.Utilities.IMGUIUtils.EatInputInRect(PreloadWindowRect);
             }
         }
-        private Texture2D colorTexture(Color color)
+        private static Texture2D ColorTexture(Color color)
         {
             Texture2D txt = new Texture2D(1, 1);
             txt.SetPixel(1, 1, color);
@@ -94,59 +91,59 @@ namespace AssetImport
         }
 
 
-        private void WindowFunction(int WindowID)
+        private void WindowFunction(int windowID)
         {
-            int y = 0;
-            filePath = GUI.TextField(new Rect(10, y += 20, 195, 20), filePath);
-            filePath = filePath.Replace("\\", "/");
-            filePath = filePath.Replace("\"", "");
+            var y = 0;
+            FilePath = GUI.TextField(new Rect(10, y += 20, 195, 20), FilePath);
+            FilePath = FilePath.Replace("\\", "/");
+            FilePath = FilePath.Replace("\"", "");
             if (GUI.Button(new Rect(205, y, 25, 20), "..."))
             {
-                string dir = (filePath == "") ? Main.defaultDir.Value : filePath.Replace(filePath.Substring(filePath.LastIndexOf("/")), "");
+                string dir = (FilePath == "") ? Main.defaultDir.Value : FilePath.Replace(FilePath.Substring(FilePath.LastIndexOf("/")), "");
                 string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Open 3D file", dir,
                         "3D files (*.fbx; *.dae; *.gltf;  *.blend; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd) " +
                         "|*.fbx; *.dae; *.gltf; *.blend; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd | All files (*.*)|*.*",
                         "obj", SingleFileFlags);
                 if (file != null)
                 {
-                    filePath = file[0];
+                    FilePath = file[0];
                 }
             }
 
-            if (GUI.Button(new Rect(10, y += 25, 220, 25), importBones ? "☑ Import Armature" : "☐ Import Armature"))
+            if (GUI.Button(new Rect(10, y += 25, 220, 25), ImportBones ? "☑ Import Armature" : "☐ Import Armature"))
             {
-                importBones = !importBones;
+                ImportBones = !ImportBones;
             }
 
-            if (GUI.Button(new Rect(10, y += 25, 220, 25), perRendererMaterials ? "☑ Material per Renderer" : "☐ Material per Renderer"))
+            if (GUI.Button(new Rect(10, y += 25, 220, 25), PerRendererMaterials ? "☑ Material per Renderer" : "☐ Material per Renderer"))
             {
-                perRendererMaterials = !perRendererMaterials;
+                PerRendererMaterials = !PerRendererMaterials;
             }
-            if (Path.GetExtension(filePath).ToLower() == ".fbx")
+            if (Path.GetExtension(FilePath).ToLower() == ".fbx")
             {
-                if (GUI.Button(new Rect(10, y += 25, 220, 25), doFbxTranslation ? "☑ Ignore Root translation" : "☐ Ignore Root Translation"))
+                if (GUI.Button(new Rect(10, y += 25, 220, 25), DoFbxTranslation ? "☑ Ignore Root translation" : "☐ Ignore Root Translation"))
                 {
-                    doFbxTranslation = !doFbxTranslation;
+                    DoFbxTranslation = !DoFbxTranslation;
                 }
             }
 
-            GUI.Label(new Rect(10, y+=30, 160, 25), $"Scaling-factor: {scales[scaleSelection]}");
-            if (scaleSelection == 0) GUI.enabled = false;
+            GUI.Label(new Rect(10, y+=30, 160, 25), $"Scaling-factor: {Scales[ScaleSelection]}");
+            if (ScaleSelection == 0) GUI.enabled = false;
             if (GUI.Button(new Rect(190, y, 20, 20), "+"))
             {
-                scaleSelection--;
+                ScaleSelection--;
             }
             //GUI.enabled = true;
-            if (scaleSelection == 9) GUI.enabled = false;
+            if (ScaleSelection == 9) GUI.enabled = false;
             if (GUI.Button(new Rect(210, y, 20, 20), "-"))
             {
-                scaleSelection++;
+                ScaleSelection++;
             }
             GUI.enabled = true;
             if (GUI.Button(new Rect(10, y+=25, 220, 30), "Import"))
             {
-                if (KKAPI.KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
-                    AssetImport.asc.Import(filePath, new Vector3(scales[scaleSelection], scales[scaleSelection], scales[scaleSelection]), importBones, perRendererMaterials, doFbxTranslation);
+                if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
+                    Main.asc.Import(FilePath, new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]), ImportBones, PerRendererMaterials, DoFbxTranslation);
                 else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
                 {
                     int slot = AccessoriesApi.SelectedMakerAccSlot;
@@ -158,25 +155,25 @@ namespace AssetImport
                             slot,
                             MakerAPI.GetCharacterControl().nowCoordinate.accessory.parts[slot].type,
                             MakerAPI.GetCharacterControl().nowCoordinate.accessory.parts[slot].parentKey,
-                            filePath,
-                            new Vector3(scales[scaleSelection], scales[scaleSelection], scales[scaleSelection]),
-                            importBones,
-                            perRendererMaterials,
-                            doFbxTranslation);
+                            FilePath,
+                            new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]),
+                            ImportBones,
+                            PerRendererMaterials,
+                            DoFbxTranslation);
                     }
-                    else AssetImport.Logger.LogMessage("Please select an accessory which you want to replace!");
+                    else Main.Logger.LogMessage("Please select an accessory which you want to replace!");
                 }
             }
 
-            mainWindowRect.height = y += 40;
+            MainWindowRect.height = y + 40;
 
             GUI.DragWindow();
         }
 
-        private void preLoadWindowFunction(int WindowID)
+        private void PreLoadWindowFunction(int windowID)
         {
-            if (!preloadUI) return;
-            if (!(Main.currentLoadProcess.import.hasBones || Main.currentLoadProcess.import.hasTextures))
+            if (!PreloadUI) return;
+            if (!(Main.currentLoadProcess.Import.HasBones || Main.currentLoadProcess.Import.HasTextures))
             {
                 if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
                     Main.asc?.FinishLoadProcess(Main.currentLoadProcess);
@@ -185,20 +182,20 @@ namespace AssetImport
                 return;
             }
 
-            if (!(Main.currentLoadProcess.import.hasBones && Main.currentLoadProcess.import.hasTextures)) GUI.enabled = false;
-            if (GUI.Button(new Rect(10, 20, 480, 25), armatureMode ? "Switch to Textures" : "Switch to Armature"))
+            if (!(Main.currentLoadProcess.Import.HasBones && Main.currentLoadProcess.Import.HasTextures)) GUI.enabled = false;
+            if (GUI.Button(new Rect(10, 20, 480, 25), ArmatureMode ? "Switch to Textures" : "Switch to Armature"))
             {
-                armatureMode = !armatureMode;
+                ArmatureMode = !ArmatureMode;
             }
             GUI.enabled = true;
 
-            if (armatureMode)
+            if (ArmatureMode)
             {
                 // custom button styles
                 GUIStyle normal = new GUIStyle(KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.button);
-                normal.normal.background = buttonBase;
-                normal.hover.background = buttonHover;
-                normal.active.background = buttonPressed;
+                normal.normal.background = _buttonBase;
+                normal.hover.background = _buttonHover;
+                normal.active.background = ButtonPressed;
                 normal.alignment = TextAnchor.UpperLeft;
 
                 GUIStyle dynamicRoot = new GUIStyle(normal);
@@ -213,32 +210,27 @@ namespace AssetImport
                 arrow.alignment = TextAnchor.MiddleCenter;
                 arrow.hover.textColor = new Color(1, 1, 0);
 
-                Rect scrollConentRect = new Rect(0, 0, 10, 30);
-                foreach (BoneNode node in Main.currentLoadProcess.import.boneNodes)
-                {
-                    if (!node.uiActive) continue;
-                    scrollConentRect.height += 22;
-                }
+                Rect scrollContentRect = new Rect(0, 0, 10, 30);
+                Main.currentLoadProcess.Import.BoneNodes.Where(node => node.UIActive).ForEach(_ => scrollContentRect.height += 22);
 
-                scrollPosition = GUI.BeginScrollView(new Rect(0, 50, 490, 500), scrollPosition, scrollConentRect);
+                ScrollPosition = GUI.BeginScrollView(new Rect(0, 50, 490, 500), ScrollPosition, scrollContentRect);
 
-                int y = 0;
-                for (int i = 0; i < Main.currentLoadProcess.import.boneNodes.Count; i++)
+                var y = 0;
+                foreach (BoneNode node in Main.currentLoadProcess.Import.BoneNodes)
                 {
-                    BoneNode node = Main.currentLoadProcess.import.boneNodes[i];
-                    if (!node.uiActive) continue;
-                    int x = 10 + node.depth * 20;
-                    scrollConentRect.height += 22;
+                    if (!node.UIActive) continue;
+                    int x = 10 + node.Depth * 20;
+                    scrollContentRect.height += 22;
                     int xx = x + 200;
-                    if (xx > scrollConentRect.width) scrollConentRect.width = xx + 10;
-                    if (GUI.Button(new Rect(x + 25, y, 1000, 22), node.gameObject.name, node.isDynamicRoot ? dynamicRoot : node.isDynamic ? dynamic : normal))
+                    if (xx > scrollContentRect.width) scrollContentRect.width = xx + 10;
+                    if (GUI.Button(new Rect(x + 25, y, 1000, 22), node.GameObject.name, node.IsDynamicRoot ? dynamicRoot : node.IsDynamic ? dynamic : normal))
                     {
-                        node.setDynamic(!node.isDynamic);
+                        node.SetDynamic(!node.IsDynamic);
                     }
-                    if (node.children.Count > 0)
-                        if (GUI.Button(new Rect(x, y, 25, 22), node.nodeOpen ? "▼" : "►", arrow))
+                    if (node.Children.Count > 0)
+                        if (GUI.Button(new Rect(x, y, 25, 22), node.NodeOpen ? "▼" : "►", arrow))
                         {
-                            node.setNodeOpen(!node.nodeOpen);
+                            node.SetNodeOpen(!node.NodeOpen);
                         }
                     y += 22;
                 }
@@ -263,87 +255,79 @@ namespace AssetImport
                 GUIStyle box = new GUIStyle(KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.box);
                 box.alignment = TextAnchor.MiddleCenter;
                 
-                if (GUI.Button(new Rect(10, 50, 480, 25), replacer ? "◀ Replace in all paths ▶" : "◀ Path shared by all textures: ▶", KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.button))
+                if (GUI.Button(new Rect(10, 50, 480, 25), Replacer ? "◀ Replace in all paths ▶" : "◀ Path shared by all textures: ▶", KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.button))
                 {
-                    replacer = !replacer;
+                    Replacer = !Replacer;
                 }
-                if (!replacer)
+                if (!Replacer)
                 {
-                    commonPathText = GUI.TextField(new Rect(10, 75, 335, 25), commonPathText, Directory.Exists(commonPathText) ? goodPath : badPath);
+                    CommonPathText = GUI.TextField(new Rect(10, 75, 335, 25), CommonPathText, Directory.Exists(CommonPathText) ? goodPath : badPath);
 
-                    if (!Directory.Exists(commonPathText)) GUI.enabled = false;
+                    if (!Directory.Exists(CommonPathText)) GUI.enabled = false;
                     if (GUI.Button(new Rect(350, 75, 480 - 350, 25), "Apply to all"))
                     {
-                        Main.currentLoadProcess.import.commonPath = commonPathText;
+                        Main.currentLoadProcess.Import.CommonPath = CommonPathText;
                     }
                     GUI.enabled = true;
                 }
                 else
                 {
-                    if (replaceString == null) replaceString = commonPathText;
-                    replaceString = GUI.TextField(new Rect(10, 75, 215, 25), replaceString, KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.textField);
+                    if (ReplaceString == null) ReplaceString = CommonPathText;
+                    ReplaceString = GUI.TextField(new Rect(10, 75, 215, 25), ReplaceString, KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.textField);
                     if (GUI.Button(new Rect(230, 75, 40, 25), "with")) 
                     { 
-                        foreach (Material mat in Main.currentLoadProcess.import.materialTextures.Keys)
+                        foreach (Material mat in Main.currentLoadProcess.Import.MaterialTextures.Keys)
                         {
-                            foreach (TexturePath tPath in Main.currentLoadProcess.import.materialTextures[mat])
+                            foreach (TexturePath tPath in Main.currentLoadProcess.Import.MaterialTextures[mat])
                             {
-                                tPath.path = tPath.path.Replace(replaceString, replaceWith);
+                                tPath.Path = tPath.Path.Replace(ReplaceString, ReplaceWith);
                             }
                         }
                     }
-                    replaceWith = GUI.TextField(new Rect(275, 75, 215, 25), replaceWith, KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.textField);
+                    ReplaceWith = GUI.TextField(new Rect(275, 75, 215, 25), ReplaceWith, KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.textField);
                 }
 
-                Rect scrollConentRect = new Rect(0, 0, 470, 0);
-                foreach (Material mat in Main.currentLoadProcess.import.materialTextures.Keys)
+                Rect scrollContentRect = new Rect(0, 0, 470, 0);
+                foreach (Material mat in Main.currentLoadProcess.Import.MaterialTextures.Keys)
                 {
-                    scrollConentRect.height += 30;
-                    foreach (TexturePath tPath in Main.currentLoadProcess.import.materialTextures[mat])
-                    {
-                        if (!(tPath.type == Assimp.TextureType.Diffuse || tPath.type == Assimp.TextureType.Normals)) continue;
-                        scrollConentRect.height += 30;
-                    }
+                    scrollContentRect.height += 30;
+                    Main.currentLoadProcess.Import.MaterialTextures[mat].Where(tPath => tPath.Type == Assimp.TextureType.Diffuse || tPath.Type == Assimp.TextureType.Normals).ForEach(_ => scrollContentRect.height += 30);
                 }
 
-                scrollPosition = GUI.BeginScrollView(new Rect(0, 110, 490, 440), scrollPosition, scrollConentRect);
+                ScrollPosition = GUI.BeginScrollView(new Rect(0, 110, 490, 440), ScrollPosition, scrollContentRect);
 
-                int y = 0;
-                foreach (Material mat in Main.currentLoadProcess.import.materialTextures.Keys)
+                var y = 0;
+                foreach (Material mat in Main.currentLoadProcess.Import.MaterialTextures.Keys)
                 {
                     GUI.Box(new Rect(10, y, 460, 25), mat.name);
 
-                    foreach (TexturePath tPath in Main.currentLoadProcess.import.materialTextures[mat])
+                    foreach (TexturePath tPath in Main.currentLoadProcess.Import.MaterialTextures[mat].Where(tPath => tPath.Type == Assimp.TextureType.Diffuse || tPath.Type == Assimp.TextureType.Normals))
                     {
-                        // currently only supports diffuse and normals
-                        if (!(tPath.type == Assimp.TextureType.Diffuse || tPath.type == Assimp.TextureType.Normals)) continue;
                         y += 30;
-                        if (!tPath.pathOkay())
+                        if (!tPath.PathOkay())
                         {
                             GUI.enabled = false;
-                            if (tPath.use) tPath.use = false;
+                            if (tPath.Use) tPath.Use = false;
                         }
-                        if (GUI.Button(new Rect(10, y, 25, 25), tPath.use ? "☑" : "☐"))
+                        if (GUI.Button(new Rect(10, y, 25, 25), tPath.Use ? "☑" : "☐"))
                         {
-                            tPath.use = !tPath.use;
+                            tPath.Use = !tPath.Use;
                         }
                         GUI.enabled = true;
                         GUI.Box(new Rect(35, y, 100, 25), "");
-                        GUI.Label(new Rect(35, y, 100, 25), tPath.type.ToString(), label);
-                        tPath.path = GUI.TextField(
+                        GUI.Label(new Rect(35, y, 100, 25), tPath.Type.ToString(), label);
+                        tPath.Path = GUI.TextField(
                             new Rect(135, y, 470 - 160, 25),
-                            tPath.path,
-                            tPath.pathOkay() ? goodPath : badPath
+                            tPath.Path,
+                            tPath.PathOkay() ? goodPath : badPath
                         );
-                        if (GUI.Button(new Rect(470-25, y, 25, 25), "..."))
+                        if (!GUI.Button(new Rect(470 - 25, y, 25, 25), "...")) continue;
+                        tPath.Path = tPath.Path.Replace("\\", "/");
+                        string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Select Texture", Main.currentLoadProcess.Import.SourceIdentifier,
+                            "Image files (*.png; *.jpg) |*.png; *.jpg | All files (*.*)|*.*", "png", SingleFileFlags);
+                        if (file != null)
                         {
-                            tPath.path = tPath.path.Replace("\\", "/");
-                            string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Select Texture", Main.currentLoadProcess.import.sourceIdentifier,
-                                    "Image files (*.png; *.jpg) |*.png; *.jpg | All files (*.*)|*.*", "png", SingleFileFlags);
-                            if (file != null)
-                            {
-                                tPath.path = file[0];
-                            }
+                            tPath.Path = file[0];
                         }
                     }
 
@@ -355,13 +339,12 @@ namespace AssetImport
 
             GUI.enabled = true;
 
-            if (GUI.Button(new Rect(10, preloadWinodwRect.height - 45, preloadWinodwRect.width - 20, 40), "Finish"))
-            {
-                if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
-                    Main.asc.FinishLoadProcess(Main.currentLoadProcess);
-                else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
-                    MakerAPI.GetCharacterControl().gameObject.GetComponentInChildren<AssetCharaController>()?.FinishLoadProcess(Main.currentLoadProcess);
-            }
+            if (!GUI.Button(new Rect(10, PreloadWindowRect.height - 45, PreloadWindowRect.width - 20, 40),
+                    "Finish")) return;
+            if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
+                Main.asc.FinishLoadProcess(Main.currentLoadProcess);
+            else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
+                MakerAPI.GetCharacterControl().gameObject.GetComponentInChildren<AssetCharaController>()?.FinishLoadProcess(Main.currentLoadProcess);
         }
     }
 }

@@ -8,36 +8,35 @@ namespace AssetImport
     /// </summary>
     public class LoadProcess
     {
-        public GameObject _base { get; set; }
-        public System.Object component { get; set; }
-        public Import import { get; set; }
-        public Vector3 scale { get; set; }
-        public loadProcessKind kind { get; set; }
-        public bool assetEnabled { get => _base.activeInHierarchy; set => _base.SetActive(value); }
-        
-        public LoadProcess(GameObject _base, OCIItem ociitem, Import import, Vector3 scale, loadProcessKind kind)
+        public GameObject BaseGameObject { get; }
+        public object Component { get; }
+        public Import Import { get; }
+        public Vector3 Scale { get; }
+        public LoadProcessKind Kind { get; }
+
+        public LoadProcess(GameObject baseGameObject, OCIItem ociitem, Import import, Vector3 scale, LoadProcessKind kind)
         {
-            this._base = _base;
-            this.component = ociitem;
-            this.import = import;
-            this.scale = scale;
-            this.kind = kind;
+            this.BaseGameObject = baseGameObject;
+            this.Component = ociitem;
+            this.Import = import;
+            this.Scale = scale;
+            this.Kind = kind;
         }
-        public LoadProcess(GameObject _base, AccessoryHelper accessory, Import import, Vector3 scale, loadProcessKind kind)
+        public LoadProcess(GameObject baseGameObject, AccessoryHelper accessory, Import import, Vector3 scale, LoadProcessKind kind)
         {
-            this._base = _base;
-            this.component = accessory;
-            this.import = import;
-            this.scale = scale;
-            this.kind = kind;
+            this.BaseGameObject = baseGameObject;
+            this.Component = accessory;
+            this.Import = import;
+            this.Scale = scale;
+            this.Kind = kind;
         }
 
-        public enum loadProcessKind
+        public enum LoadProcessKind
         {
-            NORMAL,
-            LOAD,
-            IMPORT,
-            COPY
+            Normal,
+            Load,
+            Import,
+            Copy
         }
     }
 }
