@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ADV.Commands.Base;
 using UnityEngine;
 using BepInEx;
 using BepInEx.Logging;
@@ -7,6 +8,7 @@ using KKAPI;
 using KKAPI.Studio.SaveLoad;
 using KKAPI.Chara;
 using HarmonyLib;
+using KK_Plugins.MaterialEditor;
 
 namespace AssetImport
 {
@@ -19,7 +21,7 @@ namespace AssetImport
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "3.0.0";
+        public const string Version = "3.0.1";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;
@@ -38,6 +40,8 @@ namespace AssetImport
         {
             Logger = base.Logger;
 
+            Logger.LogWarning(typeof(MaterialEditorCharaController).AssemblyQualifiedName);
+            
             KeyboardShortcut defaultShortcut = new KeyboardShortcut(KeyCode.I, KeyCode.LeftAlt);
             hotkey = Config.Bind("_General_", "Hotkey", defaultShortcut, "Press this key to open the UI");
             defaultDir = Config.Bind("_General_", "Default Directory", "C:", "The default directory of the file dialoge.");
