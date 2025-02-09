@@ -39,8 +39,6 @@ namespace AssetImport
         void Awake()
         {
             Logger = base.Logger;
-
-            Logger.LogWarning(typeof(MaterialEditorCharaController).AssemblyQualifiedName);
             
             KeyboardShortcut defaultShortcut = new KeyboardShortcut(KeyCode.I, KeyCode.LeftAlt);
             hotkey = Config.Bind("_General_", "Hotkey", defaultShortcut, "Press this key to open the UI");
