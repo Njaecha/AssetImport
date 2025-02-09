@@ -7,6 +7,7 @@ using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using Studio;
 using System.Reflection.Emit;
+using KK_Plugins.MaterialEditor;
 
 namespace AssetImport
 {
@@ -46,7 +47,9 @@ namespace AssetImport
             }
         }
 
-        [HarmonyTranspiler, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "LoadData", MethodType.Enumerator)]
+        [HarmonyTranspiler]
+        [HarmonyPatch(typeof(MaterialEditorCharaController), nameof(MaterialEditorCharaController.LoadData), MethodType.Enumerator)]
+        [HarmonyPatch(new[] { typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
         static IEnumerable<CodeInstruction> MaterialEditorLoadDataTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var code = new List<CodeInstruction>(instructions);
