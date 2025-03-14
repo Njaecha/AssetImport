@@ -487,7 +487,7 @@ namespace AssetImport
                     tangentsDeltas = null;
                 }
 
-                targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight, vertDeltas, normalsDeltas, tangentsDeltas);
+                targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight * 100, vertDeltas, normalsDeltas, tangentsDeltas);
             }
         }
 
