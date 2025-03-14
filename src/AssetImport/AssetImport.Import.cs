@@ -431,7 +431,7 @@ namespace AssetImport
 
                 if (mesh.HasMeshAnimationAttachments)
                 {
-	                ProcessBlendshapes(mesh, uMesh);
+                    ProcessBlendshapes(mesh, uMesh);
                 }
 
                 _meshes.Add(uMesh);
@@ -440,55 +440,55 @@ namespace AssetImport
 
         private void ProcessBlendshapes(Assimp.Mesh sourceMesh, Mesh targetMesh)
         {
-	        foreach (var meshAnimation in sourceMesh.MeshAnimationAttachments)
-	        {
-		        var vertDeltas = new Vector3[sourceMesh.VertexCount];
+            foreach (var meshAnimation in sourceMesh.MeshAnimationAttachments)
+            {
+                var vertDeltas = new Vector3[sourceMesh.VertexCount];
 
-		        for (var i = 0; i < sourceMesh.VertexCount; i++)
-		        {
-			        var assimpVert = meshAnimation.Vertices[i];
-					var sourceVert = new Vector3(assimpVert.X, assimpVert.Y, assimpVert.Z);
-					vertDeltas[i] = sourceVert - targetMesh.vertices[i];
-		        }
+                for (var i = 0; i < sourceMesh.VertexCount; i++)
+                {
+                    var assimpVert = meshAnimation.Vertices[i];
+                    var sourceVert = new Vector3(assimpVert.X, assimpVert.Y, assimpVert.Z);
+                    vertDeltas[i] = sourceVert - targetMesh.vertices[i];
+                }
 
-		        Vector3[] normalsDeltas;
+                Vector3[] normalsDeltas;
 
-				if (meshAnimation.HasNormals)
-		        {
-			        normalsDeltas = new Vector3[sourceMesh.VertexCount];
+                if (meshAnimation.HasNormals)
+                {
+                    normalsDeltas = new Vector3[sourceMesh.VertexCount];
 
-					for (var i = 0; i < sourceMesh.VertexCount; i++)
-			        {
-				        var assimpNorm = meshAnimation.Normals[i];
-				        var sourceNorm = new Vector3(assimpNorm.X, assimpNorm.Y, assimpNorm.Z);
-				        normalsDeltas[i] = sourceNorm - targetMesh.normals[i];
-			        }
-				}
-		        else
-		        {
-			        normalsDeltas = null;
-		        }
+                    for (var i = 0; i < sourceMesh.VertexCount; i++)
+                    {
+                        var assimpNorm = meshAnimation.Normals[i];
+                        var sourceNorm = new Vector3(assimpNorm.X, assimpNorm.Y, assimpNorm.Z);
+                        normalsDeltas[i] = sourceNorm - targetMesh.normals[i];
+                    }
+                }
+                else
+                {
+                    normalsDeltas = null;
+                }
 
-		        Vector3[] tangentsDeltas;
+                Vector3[] tangentsDeltas;
 
-		        if (meshAnimation.Tangents.Count > 0)
-		        {
-			        tangentsDeltas = new Vector3[sourceMesh.VertexCount];
+                if (meshAnimation.Tangents.Count > 0)
+                {
+                    tangentsDeltas = new Vector3[sourceMesh.VertexCount];
 
-			        for (var i = 0; i < sourceMesh.VertexCount; i++)
-			        {
-				        var assimpTang = meshAnimation.Tangents[i];
-				        var sourceTang = new Vector3(assimpTang.X, assimpTang.Y, assimpTang.Z);
-				        tangentsDeltas[i] = sourceTang - (Vector3)targetMesh.tangents[i];
-			        }
-		        }
-		        else
-		        {
-			        tangentsDeltas = null;
-		        }
+                    for (var i = 0; i < sourceMesh.VertexCount; i++)
+                    {
+                        var assimpTang = meshAnimation.Tangents[i];
+                        var sourceTang = new Vector3(assimpTang.X, assimpTang.Y, assimpTang.Z);
+                        tangentsDeltas[i] = sourceTang - (Vector3)targetMesh.tangents[i];
+                    }
+                }
+                else
+                {
+                    tangentsDeltas = null;
+                }
 
                 targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight, vertDeltas, normalsDeltas, tangentsDeltas);
-			}
+            }
         }
 
         private void ProcessArmatures()
