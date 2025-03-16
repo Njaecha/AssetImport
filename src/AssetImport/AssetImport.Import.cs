@@ -380,6 +380,7 @@ namespace AssetImport
         {
             _logger.LogDebug("Processing Meshes");
             if (!_scene.HasMeshes) return;
+
             foreach(Assimp.Mesh mesh in _scene.Meshes)
             {
                 _logger.LogDebug($"Converting Mesh: {mesh.Name}");
@@ -428,7 +429,65 @@ namespace AssetImport
                 uMesh.triangles = uIndices.ToArray();
                 uMesh.uv = uUv.ToArray();
 
+                if (mesh.HasMeshAnimationAttachments)
+                {
+                    ProcessBlendshapes(mesh, uMesh);
+                }
+
                 _meshes.Add(uMesh);
+            }
+        }
+
+        private static void ProcessBlendshapes(Assimp.Mesh sourceMesh, Mesh targetMesh)
+        {
+            foreach (MeshAnimationAttachment meshAnimation in sourceMesh.MeshAnimationAttachments)
+            {
+                var vertDeltas = new Vector3[sourceMesh.VertexCount];
+
+                for (var i = 0; i < sourceMesh.VertexCount; i++)
+                {
+                    Vector3D assimpVert = meshAnimation.Vertices[i];
+                    Vector3 sourceVert = new Vector3(assimpVert.X, assimpVert.Y, assimpVert.Z);
+                    vertDeltas[i] = sourceVert - targetMesh.vertices[i];
+                }
+
+                Vector3[] normalsDeltas;
+
+                if (meshAnimation.HasNormals)
+                {
+                    normalsDeltas = new Vector3[sourceMesh.VertexCount];
+
+                    for (var i = 0; i < sourceMesh.VertexCount; i++)
+                    {
+                        Vector3D assimpNorm = meshAnimation.Normals[i];
+                        Vector3 sourceNorm = new Vector3(assimpNorm.X, assimpNorm.Y, assimpNorm.Z);
+                        normalsDeltas[i] = sourceNorm - targetMesh.normals[i];
+                    }
+                }
+                else
+                {
+                    normalsDeltas = null;
+                }
+
+                Vector3[] tangentsDeltas;
+
+                if (meshAnimation.Tangents.Count > 0)
+                {
+                    tangentsDeltas = new Vector3[sourceMesh.VertexCount];
+
+                    for (var i = 0; i < sourceMesh.VertexCount; i++)
+                    {
+                        Vector3D assimpTang = meshAnimation.Tangents[i];
+                        Vector3 sourceTang = new Vector3(assimpTang.X, assimpTang.Y, assimpTang.Z);
+                        tangentsDeltas[i] = sourceTang - (Vector3)targetMesh.tangents[i];
+                    }
+                }
+                else
+                {
+                    tangentsDeltas = null;
+                }
+
+                targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight * 100, vertDeltas, normalsDeltas, tangentsDeltas);
             }
         }
 

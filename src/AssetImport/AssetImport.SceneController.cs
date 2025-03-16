@@ -268,13 +268,20 @@ namespace AssetImport
 
         private void ForceKKPEreload()
         {
-            PluginData data = ExtendedSave.GetSceneExtendedDataById("kkpe");
-            if (data == null)
-                return;
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml((string)data.data["sceneInfo"]);
-            XmlNode node = doc.FirstChild;
-            Singleton<HSPE.MainWindow>.Instance.ExternalLoadScene(node);
+            try
+            {
+                PluginData data = ExtendedSave.GetSceneExtendedDataById("kkpe");
+                if (data == null)
+                    return;
+                XmlDocument doc = new XmlDocument();
+                doc.LoadXml((string)data.data["sceneInfo"]);
+                XmlNode node = doc.FirstChild;
+                Singleton<HSPE.MainWindow>.Instance.ExternalLoadScene(node);
+            }
+            catch (Exception e)
+            {
+                Logger.LogWarning("Forcing KKPE reload failed: "+ e.Message);
+            }
         }
 
         protected override void OnObjectDeleted(ObjectCtrlInfo oci)
@@ -341,6 +348,7 @@ namespace AssetImport
 
             // add a sphere
             OCIItem ociitem = AddObjectItem.Add(0, 0, 0);
+            ociitem.objectItem.SetActive(false);
             ociitem.itemInfo.bones.Clear();
 
             Logger.LogInfo($"Importing [{path}] started...");
@@ -397,7 +405,6 @@ namespace AssetImport
             ociitem.listBones.ForEach(info => Destroy(info.guideObject.gameObject));
             ociitem.listBones.Clear();
 
-
             Vector3 ociScale = ociitem.guideObject.changeAmount.scale;
 
             // set imported gameObject as child of base
@@ -411,6 +418,8 @@ namespace AssetImport
             // ==== OCIItem ====
 
             ociitem.arrayRender = import.Renderers.ToArray();
+
+            ociitem.objectItem.SetActive(true);
 
             // ==== components ====
 
