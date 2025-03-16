@@ -268,13 +268,20 @@ namespace AssetImport
 
         private void ForceKKPEreload()
         {
-            PluginData data = ExtendedSave.GetSceneExtendedDataById("kkpe");
-            if (data == null)
-                return;
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml((string)data.data["sceneInfo"]);
-            XmlNode node = doc.FirstChild;
-            Singleton<HSPE.MainWindow>.Instance.ExternalLoadScene(node);
+            try
+            {
+                PluginData data = ExtendedSave.GetSceneExtendedDataById("kkpe");
+                if (data == null)
+                    return;
+                XmlDocument doc = new XmlDocument();
+                doc.LoadXml((string)data.data["sceneInfo"]);
+                XmlNode node = doc.FirstChild;
+                Singleton<HSPE.MainWindow>.Instance.ExternalLoadScene(node);
+            }
+            catch (Exception e)
+            {
+                Logger.LogWarning("Forcing KKPE reload failed: "+ e.Message);
+            }
         }
 
         protected override void OnObjectDeleted(ObjectCtrlInfo oci)
