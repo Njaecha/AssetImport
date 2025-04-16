@@ -46,7 +46,11 @@ namespace AssetImport
 
         protected override void OnSceneSave()
         {
-            if (!(LoadedObjects.Count > 0)) return;
+            if (!(LoadedObjects.Count > 0))
+            {
+                SetExtendedData(null);
+                return;
+            }
             PluginData data = new PluginData();
 
             var assets = new List<Asset>();
