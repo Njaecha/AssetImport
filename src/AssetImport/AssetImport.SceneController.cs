@@ -346,6 +346,12 @@ namespace AssetImport
             path = path.Replace("\"", "");
             path = path.Replace("\\", "/");
 
+            if (!(File.Exists(path)))
+            {
+                Logger.LogMessage($"File {path} does not exist");
+                return;
+            }
+            
             // add a sphere
             OCIItem ociitem = AddObjectItem.Add(0, 0, 0);
             ociitem.objectItem.SetActive(false);

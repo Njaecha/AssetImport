@@ -733,6 +733,12 @@ namespace AssetImport
             // unify path structure
             path = path.Replace("\"", "");
             path = path.Replace("\\", "/");
+            
+            if (!(File.Exists(path)))
+            {
+                Logger.LogMessage($"File {path} does not exist");
+                return;
+            }
 
             Logger.LogDebug($"Accessory Import started on slot {slot} with type [{type}] and parentNode [{parent}]");
 

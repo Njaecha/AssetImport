@@ -140,6 +140,7 @@ namespace AssetImport
                 ScaleSelection++;
             }
             GUI.enabled = true;
+            if (FilePath.IsNullOrEmpty()) GUI.enabled = false;
             if (GUI.Button(new Rect(10, y+=25, 220, 30), "Import"))
             {
                 if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
@@ -164,6 +165,7 @@ namespace AssetImport
                     else Main.Logger.LogMessage("Please select an accessory which you want to replace!");
                 }
             }
+            GUI.enabled = true;
 
             MainWindowRect.height = y + 40;
 
