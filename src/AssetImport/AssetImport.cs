@@ -21,7 +21,7 @@ namespace AssetImport
     {
         public const string PluginName = "KKS_AssetImport";
         public const string GUID = "org.njaecha.plugins.assetimport";
-        public const string Version = "3.1.1";
+        public const string Version = "3.2.0";
 
         internal new static ManualLogSource Logger;
         internal static AssetSceneController asc;

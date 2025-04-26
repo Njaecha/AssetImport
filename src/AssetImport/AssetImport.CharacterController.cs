@@ -786,25 +786,31 @@ namespace AssetImport
             GameObject loadProcessBase = loadProcess.BaseGameObject;
             if (!(loadProcess.Component is AccessoryHelper accessory)) return;
 
-            for (int i = loadProcessBase.transform.FindLoop("N_move").transform.childCount; i > 0; i--)
+            GameObject n_move = loadProcessBase.transform.FindLoop("N_move");
+
+            for (int i = n_move.transform.childCount; i > 0; i--)
             {
-                DestroyImmediate(loadProcessBase.transform.FindLoop("N_move").transform.GetChild(i - 1).gameObject);
+                DestroyImmediate(n_move.transform.GetChild(i - 1).gameObject);
             }
 
-            // destory secondary accessory object if it exists
-            int siblingIndex = loadProcessBase.transform.FindLoop("N_move").transform.parent.GetSiblingIndex();
-            for (int i = loadProcessBase.transform.childCount-1; i >= 0; i--)
+            // destroy secondary accessory object if it exists
+            if (loadProcessBase.transform.childCount > 1)
             {
-                if (i == siblingIndex) continue;
-                DestroyImmediate(loadProcessBase.transform.GetChild(i).gameObject);
-                Singleton<ChaCustom.CvsAccessory>.Instance?.UpdateCustomUI();
+                n_move.transform.SetParent(null); // detach n_move
+                for (int j = loadProcessBase.transform.childCount; j > 0; j--) // remove all children
+                {
+                    DestroyImmediate(loadProcessBase.transform.GetChild(j - 1).gameObject);
+                }
+                n_move.transform.SetParent(loadProcessBase.transform); // reattach n_move
             }
+            
+            if (KKAPI.Maker.MakerAPI.InsideMaker) Singleton<ChaCustom.CvsAccessory>.Instance?.UpdateCustomUI();
 
             Vector3 scale = accessory.AddMove[0, 2];
 
             // set imported gameObject as child of base
             GameObject importObject = import.GameObject;
-            importObject.transform.parent = loadProcessBase.transform.FindLoop("N_move").transform;
+            importObject.transform.parent = n_move.transform;
             importObject.transform.localPosition = Vector3.zero;
             importObject.transform.localRotation = Quaternion.identity;
             importObject.transform.localScale = Vector3.one;
