@@ -803,8 +803,9 @@ namespace AssetImport
                 }
                 n_move.transform.SetParent(loadProcessBase.transform); // reattach n_move
             }
-            
-            if (KKAPI.Maker.MakerAPI.InsideMaker) Singleton<ChaCustom.CvsAccessory>.Instance?.UpdateCustomUI();
+
+            if (KKAPI.Maker.MakerAPI.InsideMaker && KKAPI.Maker.AccessoriesApi.SelectedMakerAccSlot >= 0) 
+                Singleton<ChaCustom.CustomAcsChangeSlot>.Instance?.cvsAccessory[KKAPI.Maker.AccessoriesApi.SelectedMakerAccSlot]?.UpdateCustomUI();
 
             Vector3 scale = accessory.AddMove[0, 2];
 
