@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Assimp;
@@ -23,7 +25,7 @@ namespace AssetImport
 		private string _cPath;
 		private readonly Material _bMat;
 		private readonly List<TexturePath> _tPaths;
-		private readonly ManualLogSource _logger;
+		private static readonly ManualLogSource Logger = AssetImport.Logger;
 		private Assimp.Scene _scene;
 
         private readonly List<Material> _materials;
@@ -45,11 +47,20 @@ namespace AssetImport
 
         public readonly bool DoFbxTranslation;
         public readonly bool PerRendererMaterials;
+        
+        private static Stopwatch _stopwatch = new Stopwatch();
+        private static readonly int MeshAPositions = Shader.PropertyToID("meshA_Positions");
+        private static readonly int MeshBPositions = Shader.PropertyToID("meshB_Positions");
+        private static readonly int DeltaPositions = Shader.PropertyToID("delta_Positions");
+        private static readonly int MeshANormals = Shader.PropertyToID("meshA_Normals");
+        private static readonly int MeshBNormals = Shader.PropertyToID("meshB_Normals");
+        private static readonly int DeltaNormals = Shader.PropertyToID("delta_Normals");
+        private static readonly int MeshATangents = Shader.PropertyToID("meshA_Tangents");
+        private static readonly int MeshBTangents = Shader.PropertyToID("meshB_Tangents");
+        private static readonly int DeltaTangents = Shader.PropertyToID("delta_Tangents");
 
-		public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
+        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
 		{
-			_logger = AssetImport.Logger;
-
 			_importBones = importArmature;
 			SourceIdentifier = identifierHash;
 			if (!baseMat) baseMat = new Material(Shader.Find("Standard"));
@@ -110,7 +121,7 @@ namespace AssetImport
 
 		public void Load()
 		{
-            _logger.LogDebug($"Loading of {RamCacheUtility.GetFileName(SourceIdentifier)} started");
+            Logger.LogDebug($"Loading of {RamCacheUtility.GetFileName(SourceIdentifier)} started");
 			
             AssimpContext imp = new AssimpContext();
             imp.SetConfig(new Assimp.Configs.RemoveEmptyBonesConfig(false));
@@ -123,7 +134,7 @@ namespace AssetImport
             {
                 try
                 {
-                    _logger.LogInfo($"File has additional files. Because of a limitation of the assimp wrapper the files have to be written to disk in order to be loaded!");
+                    Logger.LogInfo($"File has additional files. Because of a limitation of the assimp wrapper the files have to be written to disk in order to be loaded!");
                     Directory.CreateDirectory(Path.Combine(temp, folder));
                     File.WriteAllBytes(Path.Combine(temp, folder, RamCacheUtility.GetFileName(SourceIdentifier)), RamCacheUtility.GetFileBlob(SourceIdentifier));
                     extraFiles.ForEach(file => File.WriteAllBytes(Path.Combine(temp, folder, RamCacheUtility.GetFileName(file)), RamCacheUtility.GetFileBlob(file)));
@@ -133,7 +144,7 @@ namespace AssetImport
                 }
                 catch(IOException e)
                 {
-                    _logger.LogError($"I/O error when trying to write the file: {e.Message}");
+                    Logger.LogError($"I/O error when trying to write the file: {e.Message}");
                     return;
                 }
             }
@@ -145,7 +156,7 @@ namespace AssetImport
             
             if (_scene == null)
 			{
-				_logger.LogError("Assimp Import failed, aborting load process");
+				Logger.LogError("Assimp Import failed, aborting load process");
 				return;
 			}
 
@@ -166,7 +177,7 @@ namespace AssetImport
                 }
                 catch (Exception e)
                 {
-                    _logger.LogError($"Cleanup failed: {e.Message}");
+                    Logger.LogError($"Cleanup failed: {e.Message}");
                 }
             }
         }
@@ -276,10 +287,10 @@ namespace AssetImport
 
 		private void ProcessMaterials()
 		{
-            _logger.LogDebug("Processing Materials");
+            Logger.LogDebug("Processing Materials");
 			foreach(Assimp.Material material in _scene.Materials)
 			{
-                _logger.LogDebug($"Processing Material: {material.Name}");
+                Logger.LogDebug($"Processing Material: {material.Name}");
 				Material uMaterial = new Material(_bMat)
                 {
                     name = material.Name
@@ -378,12 +389,12 @@ namespace AssetImport
 
         private void ProcessMeshes()
         {
-            _logger.LogDebug("Processing Meshes");
+            Logger.LogDebug("Processing Meshes");
             if (!_scene.HasMeshes) return;
 
             foreach(Assimp.Mesh mesh in _scene.Meshes)
             {
-                _logger.LogDebug($"Converting Mesh: {mesh.Name}");
+                Logger.LogDebug($"Converting Mesh: {mesh.Name}");
                 Mesh uMesh = new Mesh();
                 var uVertices = new List<Vector3>();
                 var uNormals = new List<Vector3>();
@@ -393,18 +404,25 @@ namespace AssetImport
                 // Vertices
                 if (mesh.HasVertices)
                 {
+                    _stopwatch.Restart();
                     uVertices.AddRange(mesh.Vertices.Select(v => new Vector3(v.X, v.Y, v.Z)));
+                    _stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.VertexCount} Vertices Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Normals
                 if (mesh.HasNormals)
                 {
+                    _stopwatch.Restart();
                     uNormals.AddRange(mesh.Normals.Select(n => new Vector3(n.X, n.Y, n.Z)));
+                    _stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.Normals.Count} Normals Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Triangles
                 if (mesh.HasFaces)
                 {
+                    _stopwatch.Restart();
                     foreach (Face f in mesh.Faces.Where(f => f.IndexCount != 1 && f.IndexCount != 2))
                     {
                         for (int i = 0; i < (f.IndexCount - 2); i++)
@@ -414,12 +432,17 @@ namespace AssetImport
                             uIndices.Add(f.Indices[0]);
                         }
                     }
+                    _stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.FaceCount} Faces Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Uv (texture coordinate) 
                 if (mesh.HasTextureCoords(0))
                 {
+                    _stopwatch.Restart();
                     uUv.AddRange(mesh.TextureCoordinateChannels[0].Select(uv => new Vector2(uv.X, uv.Y)));
+                    _stopwatch.Stop();
+                    Logger.LogDebug($"UV Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 if (uVertices.Count > 65000) uMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -428,9 +451,10 @@ namespace AssetImport
                 uMesh.normals = uNormals.ToArray();
                 uMesh.triangles = uIndices.ToArray();
                 uMesh.uv = uUv.ToArray();
-
+                
                 if (mesh.HasMeshAnimationAttachments)
                 {
+                    Logger.LogDebug("Converting Mesh Animation Attachments >>>");
                     ProcessBlendshapes(mesh, uMesh);
                 }
 
@@ -438,57 +462,130 @@ namespace AssetImport
             }
         }
 
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         private static void ProcessBlendshapes(Assimp.Mesh sourceMesh, Mesh targetMesh)
         {
-            foreach (MeshAnimationAttachment meshAnimation in sourceMesh.MeshAnimationAttachments)
+            ComputeShader shader = AssetImport.vertexDeltaComputeShader;
+            int vertexCount = sourceMesh.VertexCount;
+            int threadGroups = Mathf.CeilToInt(vertexCount / 64f);
+
+            bool AnyAll = sourceMesh.MeshAnimationAttachments.Any(m => m.Normals.Count > 0 && m.Tangents.Count > 0);
+            bool AnyPosAndNorm = sourceMesh.MeshAnimationAttachments.Any(m => m.Normals.Count > 0 && m.Tangents.Count == 0);
+            bool AnyPosAndTan = sourceMesh.MeshAnimationAttachments.Any(m => m.Normals.Count == 0 && m.Tangents.Count > 0);
+            bool AnyPos = sourceMesh.MeshAnimationAttachments.Any(m => m.Normals.Count == 0 && m.Tangents.Count == 0);
+
+            int kernelAll = shader.FindKernel("CSAll");
+            int kernelPosAndNorm = shader.FindKernel("CSPosAndNorm");
+            int kernelPosAndTan = shader.FindKernel("CSPosAndTan");
+            int kernelPos = shader.FindKernel("CSPos");
+            
+            // set MeshA Position buffers
+            ComputeBuffer meshA_Positions = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            meshA_Positions.SetData(sourceMesh.Vertices.ToArray());
+            ComputeBuffer meshA_Normals = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            meshA_Normals.SetData(sourceMesh.Normals.ToArray());
+            ComputeBuffer meshA_Tangents = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            meshA_Tangents.SetData(sourceMesh.Tangents.ToArray());
+            
+            // Set MeshB buffers
+            ComputeBuffer meshB_Positions = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            ComputeBuffer meshB_Normals = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            ComputeBuffer meshB_Tangents = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            
+            // Set Output buffers
+            ComputeBuffer delta_Positions = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            ComputeBuffer delta_Normals = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+            ComputeBuffer delta_Tangents = new ComputeBuffer(vertexCount, sizeof(float) * 3);
+
+            if (AnyAll)
             {
-                var vertDeltas = new Vector3[sourceMesh.VertexCount];
-
-                for (var i = 0; i < sourceMesh.VertexCount; i++)
-                {
-                    Vector3D assimpVert = meshAnimation.Vertices[i];
-                    Vector3 sourceVert = new Vector3(assimpVert.X, assimpVert.Y, assimpVert.Z);
-                    vertDeltas[i] = sourceVert - targetMesh.vertices[i];
-                }
-
-                Vector3[] normalsDeltas;
-
-                if (meshAnimation.HasNormals)
-                {
-                    normalsDeltas = new Vector3[sourceMesh.VertexCount];
-
-                    for (var i = 0; i < sourceMesh.VertexCount; i++)
-                    {
-                        Vector3D assimpNorm = meshAnimation.Normals[i];
-                        Vector3 sourceNorm = new Vector3(assimpNorm.X, assimpNorm.Y, assimpNorm.Z);
-                        normalsDeltas[i] = sourceNorm - targetMesh.normals[i];
-                    }
-                }
-                else
-                {
-                    normalsDeltas = null;
-                }
-
-                Vector3[] tangentsDeltas;
-
-                if (meshAnimation.Tangents.Count > 0)
-                {
-                    tangentsDeltas = new Vector3[sourceMesh.VertexCount];
-
-                    for (var i = 0; i < sourceMesh.VertexCount; i++)
-                    {
-                        Vector3D assimpTang = meshAnimation.Tangents[i];
-                        Vector3 sourceTang = new Vector3(assimpTang.X, assimpTang.Y, assimpTang.Z);
-                        tangentsDeltas[i] = sourceTang - (Vector3)targetMesh.tangents[i];
-                    }
-                }
-                else
-                {
-                    tangentsDeltas = null;
-                }
-
-                targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight * 100, vertDeltas, normalsDeltas, tangentsDeltas);
+                shader.SetBuffer(kernelAll, MeshAPositions, meshA_Positions);
+                shader.SetBuffer(kernelAll, MeshANormals, meshA_Normals);
+                shader.SetBuffer(kernelAll, MeshATangents, meshA_Tangents);
+                shader.SetBuffer(kernelAll, MeshBPositions, meshB_Positions);
+                shader.SetBuffer(kernelAll, MeshBNormals, meshB_Normals);
+                shader.SetBuffer(kernelAll, MeshBTangents, meshB_Tangents);
+                shader.SetBuffer(kernelAll, DeltaPositions, delta_Positions);
+                shader.SetBuffer(kernelAll, DeltaNormals, delta_Normals);
+                shader.SetBuffer(kernelAll, DeltaTangents, delta_Tangents);
             }
+            if (AnyPosAndNorm)
+            {
+                shader.SetBuffer(kernelPosAndNorm, MeshAPositions, meshA_Positions);
+                shader.SetBuffer(kernelPosAndNorm, MeshANormals, meshA_Normals);
+                shader.SetBuffer(kernelPosAndNorm, MeshBPositions, meshB_Positions);
+                shader.SetBuffer(kernelPosAndNorm, MeshBNormals, meshB_Normals);
+                shader.SetBuffer(kernelPosAndNorm, DeltaPositions, delta_Positions);
+                shader.SetBuffer(kernelPosAndNorm, DeltaNormals, delta_Normals);
+            }
+            if (AnyPosAndTan)
+            {
+                shader.SetBuffer(kernelPosAndTan, MeshAPositions, meshA_Positions);
+                shader.SetBuffer(kernelPosAndTan, MeshATangents, meshA_Tangents);
+                shader.SetBuffer(kernelPosAndTan, MeshBPositions, meshB_Positions);
+                shader.SetBuffer(kernelPosAndTan, MeshBTangents, meshB_Tangents);
+                shader.SetBuffer(kernelPosAndTan, DeltaPositions, delta_Positions);
+                shader.SetBuffer(kernelPosAndTan, DeltaTangents, delta_Tangents);
+            }
+            if (AnyPos)
+            {
+                shader.SetBuffer(kernelPos, MeshAPositions, meshA_Positions);
+                shader.SetBuffer(kernelPos, MeshBPositions, meshB_Positions);
+                shader.SetBuffer(kernelPos, DeltaPositions, delta_Positions);
+            }
+            
+            double total = 0;
+            for(int index = 0; index < sourceMesh.MeshAnimationAttachmentCount; index++)
+            {
+                MeshAnimationAttachment meshAnimation = sourceMesh.MeshAnimationAttachments[index];
+                
+                _stopwatch.Restart();
+                
+                bool HasTangents = meshAnimation.Tangents.Count > 0;
+                bool HasNormals = meshAnimation.Normals.Count > 0;
+                
+                var vertDeltas = new Vector3[vertexCount];
+                var normalsDeltas = new Vector3[vertexCount];
+                var tangentsDeltas = new Vector3[vertexCount];
+
+                int kernelIndex = meshAnimation.HasNormals && HasTangents ? kernelAll : HasTangents ? kernelPosAndTan : meshAnimation.HasNormals ? kernelPosAndNorm : kernelPos;
+                
+                // Set Data
+                // Positions
+                meshB_Positions.SetData(meshAnimation.Vertices.ToArray());
+
+                // Normals
+                if (HasNormals) meshB_Normals.SetData(meshAnimation.Normals.ToArray());
+
+                // Tangents
+                if (HasTangents) meshB_Tangents.SetData(meshAnimation.Tangents.ToArray());
+                
+                // Dispatch
+                shader.Dispatch(kernelIndex, threadGroups, 1, 1);
+                
+                delta_Positions.GetData(vertDeltas);
+                if (HasNormals) delta_Normals.GetData(normalsDeltas);
+                if (HasTangents) delta_Tangents.GetData(tangentsDeltas);
+                
+                targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight * 100, vertDeltas, normalsDeltas, tangentsDeltas);
+                
+                _stopwatch.Stop();
+                total += _stopwatch.Elapsed.TotalMilliseconds;
+                Logger.LogDebug($"  >>> Blendshape {index+1}/{sourceMesh.MeshAnimationAttachmentCount} Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                
+            }
+            // Cleanup
+            meshA_Positions.Release();
+            meshA_Positions.Release();
+            delta_Positions.Release();
+            meshA_Normals.Release();
+            meshB_Normals.Release();
+            delta_Normals.Release();
+            meshA_Tangents.Release();
+            meshB_Tangents.Release();
+            delta_Tangents.Release();
+            
+            Logger.LogDebug($"Blendshape processing completed in {total} ms");
         }
 
         private void ProcessArmatures()
@@ -513,7 +610,7 @@ namespace AssetImport
 
         private void ProcessArmature(Assimp.Mesh mesh, SkinnedMeshRenderer renderer, string name)
         {
-            _logger.LogDebug($"Processing Armature on Mesh: {name}");
+            Logger.LogDebug($"Processing Armature on Mesh: {name}");
             Mesh uMesh = renderer.sharedMesh;
             // helper Dict<vertexIndex, List<Tuple<boneIndex, weight>>>
             var helper = new Dictionary<int, List<Tuple<int, float>>>();

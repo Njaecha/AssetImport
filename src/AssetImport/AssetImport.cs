@@ -9,6 +9,7 @@ using KKAPI.Studio.SaveLoad;
 using KKAPI.Chara;
 using HarmonyLib;
 using KK_Plugins.MaterialEditor;
+using KKAPI.Utilities;
 
 namespace AssetImport
 {
@@ -36,6 +37,8 @@ namespace AssetImport
         // current import
         internal static LoadProcess currentLoadProcess;
 
+        internal static ComputeShader vertexDeltaComputeShader;
+
         void Awake()
         {
             Logger = base.Logger;
@@ -58,6 +61,13 @@ namespace AssetImport
             KKAPI.Maker.AccessoriesApi.AccessoryTransferred += AccessoryTransferred;
 
             instance = this;
+            
+            // load assets
+            byte[] data = ResourceUtils.GetEmbeddedResource("assetimport-resources");
+            AssetBundle bundle = AssetBundle.LoadFromMemory(data);
+            // vertexDelta ComputeShader
+            ComputeShader vertexDelta = bundle.LoadAsset<ComputeShader>("VertexDelta");
+            vertexDeltaComputeShader = vertexDelta;
         }
 
         private void AccessoryTransferred(object sender, KKAPI.Maker.AccessoryTransferEventArgs e)
