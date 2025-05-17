@@ -1,0 +1,49 @@
+// this is only here for reference. The actual shader is compiled in the assetbundle
+
+#pragma kernel CSPos
+#pragma kernel CSPosAndNorm
+#pragma kernel CSAll
+#pragma kernel CSPosAndTan
+
+// === POSITION ===
+StructuredBuffer<float3> meshA_Positions;
+StructuredBuffer<float3> meshB_Positions;
+RWStructuredBuffer<float3> delta_Positions;
+
+// === NORMAL ===
+StructuredBuffer<float3> meshA_Normals;
+StructuredBuffer<float3> meshB_Normals;
+RWStructuredBuffer<float3> delta_Normals;
+
+// === TANGENT ===
+StructuredBuffer<float3> meshA_Tangents;
+StructuredBuffer<float3> meshB_Tangents;
+RWStructuredBuffer<float3> delta_Tangents;
+
+[numthreads(64, 1, 1)]
+void CSPos (uint id : SV_DispatchThreadID)
+{
+    delta_Positions[id] = meshB_Positions[id] - meshA_Positions[id];
+}
+
+[numthreads(64, 1, 1)]
+void CSPosAndNorm (uint id : SV_DispatchThreadID)
+{
+    delta_Positions[id] = meshB_Positions[id] - meshA_Positions[id];
+    delta_Normals[id]   = meshB_Normals[id]   - meshA_Normals[id];
+}
+
+[numthreads(64, 1, 1)]
+void CSPosAndTan (uint id : SV_DispatchThreadID)
+{
+    delta_Positions[id] = meshB_Positions[id] - meshA_Positions[id];
+    delta_Tangents[id]  = meshB_Tangents[id]  - meshA_Tangents[id];
+}
+
+[numthreads(64, 1, 1)]
+void CSAll (uint id : SV_DispatchThreadID)
+{
+    delta_Positions[id] = meshB_Positions[id] - meshA_Positions[id];
+    delta_Normals[id]   = meshB_Normals[id]   - meshA_Normals[id];
+    delta_Tangents[id]  = meshB_Tangents[id]  - meshA_Tangents[id];
+}
