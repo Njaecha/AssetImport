@@ -728,7 +728,7 @@ namespace AssetImport
             ChaControl.infoAccessory[slot] = listInfoBase;
         }
 
-        public void Import(int slot, int type, string parent, string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation)
+        public void Import(int slot, int type, string parent, string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation,bool loadBlendshapes)
         {
             // unify path structure
             path = path.Replace("\"", "");
@@ -766,7 +766,8 @@ namespace AssetImport
                 armature, 
                 baseMaterial, 
                 doFbxTranslation, 
-                perRendererMaterials
+                perRendererMaterials,
+                loadBlendshapes
             );
             import.Load();
             if (!import.IsLoaded) return;

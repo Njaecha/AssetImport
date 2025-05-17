@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
+using ADV.Commands.Object;
 using UnityEngine;
 using KKAPI;
 using KKAPI.Maker;
@@ -21,9 +22,10 @@ namespace AssetImport
         internal static string FilePath = "";
         internal static int ScaleSelection = 4;
         internal static readonly float[] Scales = { 10f, 5f, 2f, 1.5f, 1.0f, 0.5f, 0.1f, 0.01f, 0.001f, 0.0001f };
-        internal static bool ImportBones;
+        internal static bool ImportBones = true;
         internal static bool PerRendererMaterials;
         internal static bool DoFbxTranslation;
+        internal static bool LoadBlendshapes = true;
         
         // preload
         internal static bool PreloadUI = false;
@@ -114,6 +116,10 @@ namespace AssetImport
             {
                 ImportBones = !ImportBones;
             }
+            if (GUI.Button(new Rect(10, y += 25, 220, 25), LoadBlendshapes ? "☑ Import Blendshapes" : "☐ Import Blendshapes"))
+            {
+                LoadBlendshapes = !LoadBlendshapes;
+            }
 
             if (GUI.Button(new Rect(10, y += 25, 220, 25), PerRendererMaterials ? "☑ Material per Renderer" : "☐ Material per Renderer"))
             {
@@ -144,7 +150,7 @@ namespace AssetImport
             if (GUI.Button(new Rect(10, y+=25, 220, 30), "Import"))
             {
                 if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
-                    Main.asc.Import(FilePath, new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]), ImportBones, PerRendererMaterials, DoFbxTranslation);
+                    Main.asc.Import(FilePath, new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]), ImportBones, PerRendererMaterials, DoFbxTranslation, LoadBlendshapes);
                 else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
                 {
                     int slot = AccessoriesApi.SelectedMakerAccSlot;
@@ -160,7 +166,8 @@ namespace AssetImport
                             new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]),
                             ImportBones,
                             PerRendererMaterials,
-                            DoFbxTranslation);
+                            DoFbxTranslation,
+                            LoadBlendshapes);
                     }
                     else Main.Logger.LogMessage("Please select an accessory which you want to replace!");
                 }

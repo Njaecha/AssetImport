@@ -343,8 +343,9 @@ namespace AssetImport
         /// <param name="armature"></param>
         /// <param name="perRendererMaterials"></param>
         /// <param name="doFbxTranslation"></param>
+        /// <param name="LoadBlendshapes"></param>
         /// <returns></returns>
-        public void Import(string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation)
+        public void Import(string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation, bool loadBlendshapes)
         {
             // unify path structure
             path = path.Replace("\"", "");
@@ -380,7 +381,8 @@ namespace AssetImport
                 armature, 
                 baseMaterial, 
                 doFbxTranslation, 
-                perRendererMaterials
+                perRendererMaterials,
+                loadBlendshapes
             );
             import.Load();
             if (!import.IsLoaded) return;

@@ -21,7 +21,6 @@ namespace AssetImport
     /// </summary>
 	public class Import
 	{
-		private readonly bool _importBones;
 		private string _cPath;
 		private readonly Material _bMat;
 		private readonly List<TexturePath> _tPaths;
@@ -45,10 +44,12 @@ namespace AssetImport
         public bool HasTextures => _tPaths.Count > 0;
         public bool IsLoaded { get; private set; }
 
+		public readonly bool ImportBones;
         public readonly bool DoFbxTranslation;
         public readonly bool PerRendererMaterials;
+        public readonly bool LoadBlendshapes;
         
-        private static Stopwatch _stopwatch = new Stopwatch();
+        private static readonly Stopwatch Stopwatch = new Stopwatch();
         private static readonly int MeshAPositions = Shader.PropertyToID("meshA_Positions");
         private static readonly int MeshBPositions = Shader.PropertyToID("meshB_Positions");
         private static readonly int DeltaPositions = Shader.PropertyToID("delta_Positions");
@@ -59,9 +60,13 @@ namespace AssetImport
         private static readonly int MeshBTangents = Shader.PropertyToID("meshB_Tangents");
         private static readonly int DeltaTangents = Shader.PropertyToID("delta_Tangents");
 
-        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false)
+        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false, bool loadBlendshapes = true)
 		{
-			_importBones = importArmature;
+			ImportBones = importArmature;
+            DoFbxTranslation = doFbxTranslation;
+            PerRendererMaterials = perRendererMaterials;
+            LoadBlendshapes = loadBlendshapes;
+            
 			SourceIdentifier = identifierHash;
 			if (!baseMat) baseMat = new Material(Shader.Find("Standard"));
 			_bMat = baseMat;
@@ -74,8 +79,6 @@ namespace AssetImport
             _meshes = new List<Mesh>();
             BoneNodes = new List<BoneNode>();
 
-            this.DoFbxTranslation = doFbxTranslation;
-            this.PerRendererMaterials = perRendererMaterials;
 		}
 
 		private string GetCommonPath()
@@ -255,7 +258,7 @@ namespace AssetImport
 
                     Renderer rend;
 
-					if (mesh.HasBones && _importBones)
+					if (mesh.HasBones && ImportBones)
 					{
                         rend = subObjet.AddComponent<SkinnedMeshRenderer>();
                         ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
@@ -404,25 +407,25 @@ namespace AssetImport
                 // Vertices
                 if (mesh.HasVertices)
                 {
-                    _stopwatch.Restart();
+                    Stopwatch.Restart();
                     uVertices.AddRange(mesh.Vertices.Select(v => new Vector3(v.X, v.Y, v.Z)));
-                    _stopwatch.Stop();
-                    Logger.LogDebug($"{mesh.VertexCount} Vertices Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                    Stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.VertexCount} Vertices Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Normals
                 if (mesh.HasNormals)
                 {
-                    _stopwatch.Restart();
+                    Stopwatch.Restart();
                     uNormals.AddRange(mesh.Normals.Select(n => new Vector3(n.X, n.Y, n.Z)));
-                    _stopwatch.Stop();
-                    Logger.LogDebug($"{mesh.Normals.Count} Normals Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                    Stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.Normals.Count} Normals Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Triangles
                 if (mesh.HasFaces)
                 {
-                    _stopwatch.Restart();
+                    Stopwatch.Restart();
                     foreach (Face f in mesh.Faces.Where(f => f.IndexCount != 1 && f.IndexCount != 2))
                     {
                         for (int i = 0; i < (f.IndexCount - 2); i++)
@@ -432,17 +435,17 @@ namespace AssetImport
                             uIndices.Add(f.Indices[0]);
                         }
                     }
-                    _stopwatch.Stop();
-                    Logger.LogDebug($"{mesh.FaceCount} Faces Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                    Stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.FaceCount} Faces Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 // Uv (texture coordinate) 
                 if (mesh.HasTextureCoords(0))
                 {
-                    _stopwatch.Restart();
+                    Stopwatch.Restart();
                     uUv.AddRange(mesh.TextureCoordinateChannels[0].Select(uv => new Vector2(uv.X, uv.Y)));
-                    _stopwatch.Stop();
-                    Logger.LogDebug($"UV Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                    Stopwatch.Stop();
+                    Logger.LogDebug($"UV Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
                 if (uVertices.Count > 65000) uMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -452,7 +455,7 @@ namespace AssetImport
                 uMesh.triangles = uIndices.ToArray();
                 uMesh.uv = uUv.ToArray();
                 
-                if (mesh.HasMeshAnimationAttachments)
+                if (mesh.HasMeshAnimationAttachments && LoadBlendshapes)
                 {
                     Logger.LogDebug("Converting Mesh Animation Attachments >>>");
                     ProcessBlendshapes(mesh, uMesh);
@@ -539,7 +542,7 @@ namespace AssetImport
             {
                 MeshAnimationAttachment meshAnimation = sourceMesh.MeshAnimationAttachments[index];
                 
-                _stopwatch.Restart();
+                Stopwatch.Restart();
                 
                 bool HasTangents = meshAnimation.Tangents.Count > 0;
                 bool HasNormals = meshAnimation.Normals.Count > 0;
@@ -569,9 +572,9 @@ namespace AssetImport
                 
                 targetMesh.AddBlendShapeFrame(meshAnimation.Name, meshAnimation.Weight * 100, vertDeltas, normalsDeltas, tangentsDeltas);
                 
-                _stopwatch.Stop();
-                total += _stopwatch.Elapsed.TotalMilliseconds;
-                Logger.LogDebug($"  >>> Blendshape {index+1}/{sourceMesh.MeshAnimationAttachmentCount} Converted in {_stopwatch.Elapsed.TotalMilliseconds} ms");
+                Stopwatch.Stop();
+                total += Stopwatch.Elapsed.TotalMilliseconds;
+                Logger.LogDebug($"  >>> Blendshape {index+1}/{sourceMesh.MeshAnimationAttachmentCount} Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 
             }
             // Cleanup
