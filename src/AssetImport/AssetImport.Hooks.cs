@@ -7,7 +7,10 @@ using KKAPI.Studio.SaveLoad;
 using KKAPI.Utilities;
 using Studio;
 using System.Reflection.Emit;
+using ChaCustom;
 using KK_Plugins.MaterialEditor;
+using KKAPI.Maker;
+using UnityEngine;
 
 namespace AssetImport
 {
@@ -41,7 +44,7 @@ namespace AssetImport
 
         public static void MaterialEditorLoadDataTranspilerContinuer(ChaControl chaControl, bool accessories)
         {
-            if (accessories) // do not reload accessories if they wont be updated by ME
+            if (accessories) // do not reload accessories if they won't be updated by ME
             {
                 chaControl?.gameObject.GetComponent<AssetCharaController>()?.LoadData();
             }
@@ -84,6 +87,12 @@ namespace AssetImport
         [HarmonyPrefix, HarmonyPatch(typeof(KK_Plugins.MaterialEditor.MaterialEditorCharaController), "OnReload")]
         private static void MaterialEditorCharacterLoadHook(GameMode currentGameMode, bool maintainState, KK_Plugins.MaterialEditor.MaterialEditorCharaController __instance)
         {
+            if (MakerAPI.InsideMaker)
+            {
+                if (GameObject.Find("charaFileControl")?.GetComponentInChildren<ChaCustom.CustomFileWindow>()
+                        ?.tglChaLoadCoorde.isOn == false) return;
+            }
+
             __instance?.ChaControl?.gameObject.GetComponentInChildren<AssetCharaController>()?.LoadCharacter(currentGameMode, maintainState);
         }
 

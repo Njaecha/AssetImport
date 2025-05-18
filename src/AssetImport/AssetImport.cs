@@ -45,7 +45,7 @@ namespace AssetImport
             
             KeyboardShortcut defaultShortcut = new KeyboardShortcut(KeyCode.I, KeyCode.LeftAlt);
             hotkey = Config.Bind("_General_", "Hotkey", defaultShortcut, "Press this key to open the UI");
-            defaultDir = Config.Bind("_General_", "Default Directory", "C:", "The default directory of the file dialoge.");
+            defaultDir = Config.Bind("_General_", "Default Directory", "C:", "The default directory of the file dialogue.");
             dumpAssets = Config.Bind("Backend", "Dump Assets", false, "Dumps assets to /UserData/AssetImport/ when loading a card with assets.");
 
             UI = this.GetOrAddComponent<AssetUI>();

@@ -227,7 +227,6 @@ namespace AssetImport
                 version = (byte)versionS;
             }
 
-
             if (version == 2 || version == 3)
             {
                 for(int cSet = 0; cSet < ChaControl.chaFile.coordinate.Length; cSet++)
