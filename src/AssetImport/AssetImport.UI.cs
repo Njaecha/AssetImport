@@ -139,7 +139,7 @@ namespace AssetImport
             {
                 ScaleSelection--;
             }
-            //GUI.enabled = true;
+            GUI.enabled = true;
             if (ScaleSelection == 9) GUI.enabled = false;
             if (GUI.Button(new Rect(210, y, 20, 20), "-"))
             {
