@@ -265,6 +265,11 @@ namespace AssetImport
 
                         _processArmaturesLater.Add(new Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>(subObjet, mesh, (SkinnedMeshRenderer)rend));
 					}
+                    else if (mesh.HasMeshAnimationAttachments) // mesh doesn't have bones but has Blendshapes.
+                    {
+                        rend = subObjet.AddComponent<SkinnedMeshRenderer>();
+                        ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
+                    }
 					else
 					{
                         MeshFilter mFilter = subObjet.AddComponent<MeshFilter>();
