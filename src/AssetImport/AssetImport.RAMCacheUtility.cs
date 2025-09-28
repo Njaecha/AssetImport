@@ -23,10 +23,12 @@ namespace AssetImport
         {
             if (File.Exists(sourcePath))
             {
+                string fileName = Path.GetFileName(sourcePath);
                 KeyValuePair<string, Tuple<string, byte[], List<string>>> kvp = DoHash(sourcePath);
                 if (!BlobStorage.ContainsKey(kvp.Key))
                 {
-                    if (Path.GetFileName(sourcePath).ToLower().EndsWith(".gltf"))
+                    // GLTF stores additional files with information
+                    if (fileName.ToLower().EndsWith(".gltf"))
                     {
                         List<string> additionalFileHashes = new List<string>();
 
@@ -42,14 +44,29 @@ namespace AssetImport
                         });
                         BlobStorage.Add(kvp.Key, new Tuple<string, byte[], List<string>>(kvp.Value.Item1, kvp.Value.Item2, additionalFileHashes));
                     }
+                    // OBJ can store a .mtl file with material data
+                    else if (fileName.ToLower().EndsWith(".obj"))
+                    {
+                        string mtlFile = sourcePath.Replace(".obj", ".mtl");
+                        if (File.Exists(mtlFile))
+                        {
+                            KeyValuePair<string,Tuple<string,byte[],List<string>>> kvp3 = DoHash(mtlFile);
+                            if (!BlobStorage.ContainsKey(kvp3.Key))
+                            {
+                                BlobStorage.Add(kvp3.Key, kvp3.Value);
+                            }
+                            BlobStorage.Add(kvp.Key, new Tuple<string, byte[], List<string>>(kvp.Value.Item1, kvp.Value.Item2, new List<string>(){kvp3.Key}));
+                        }
+                        else BlobStorage.Add(kvp.Key, kvp.Value);
+                    }
                     else
                     {
                         BlobStorage.Add(kvp.Key, kvp.Value);
                     }
                 }
-                else if (BlobStorage[kvp.Key].Item1 != Path.GetFileName(sourcePath))
+                else if (BlobStorage[kvp.Key].Item1 != fileName)
                 {
-                    Main.Logger.LogWarning($"A file with the exact content as {Path.GetFileName(sourcePath)} has already been cached under the name {BlobStorage[kvp.Key].Item1}. This will be used instead");
+                    Main.Logger.LogWarning($"A file with the exact content as {fileName} has already been cached under the name {BlobStorage[kvp.Key].Item1}. This will be used instead");
                 }
                 return kvp.Key;
             }
