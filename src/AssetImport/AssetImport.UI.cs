@@ -264,7 +264,7 @@ namespace AssetImport
                 GUIStyle box = new GUIStyle(KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.box);
                 box.alignment = TextAnchor.MiddleCenter;
                 
-                if (GUI.Button(new Rect(10, 50, 480, 25), Replacer ? "◀ Replace in all paths ▶" : "◀ Path shared by all textures: ▶", KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.button))
+                if (GUI.Button(new Rect(10, 50, 480, 25), Replacer ? "◀ Replace in all paths ▶" : "◀ Replace common or full Path: ▶", KKAPI.Utilities.IMGUIUtils.SolidBackgroundGuiSkin.button))
                 {
                     Replacer = !Replacer;
                 }
@@ -273,9 +273,13 @@ namespace AssetImport
                     CommonPathText = GUI.TextField(new Rect(10, 75, 335, 25), CommonPathText, Directory.Exists(CommonPathText) ? goodPath : badPath);
 
                     if (!Directory.Exists(CommonPathText)) GUI.enabled = false;
-                    if (GUI.Button(new Rect(350, 75, 480 - 350, 25), "Apply to all"))
+                    if (GUI.Button(new Rect(350, 75, 480 - 350 - 70, 25), "Common"))
                     {
                         Main.currentLoadProcess.Import.CommonPath = CommonPathText;
+                    }
+                    if (GUI.Button(new Rect(350+70, 75, 480 - 350 - 70, 25), "Full"))
+                    {
+                        Main.currentLoadProcess.Import.ReplacePathInAllTextures(CommonPathText);
                     }
                     GUI.enabled = true;
                 }

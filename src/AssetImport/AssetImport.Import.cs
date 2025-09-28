@@ -122,6 +122,17 @@ namespace AssetImport
 			}
         }
 
+        public void ReplacePathInAllTextures(string newPath)
+        {
+            if (!HasTextures) return;
+            newPath = newPath.Replace("\\", "/");
+            if (!newPath.EndsWith("/")) newPath += "/";
+            foreach (TexturePath p in _tPaths)
+            {
+                p.Path = newPath+p.File;
+            }
+        }
+
 		public void Load()
 		{
             Logger.LogDebug($"Loading of {RamCacheUtility.GetFileName(SourceIdentifier)} started");
