@@ -55,9 +55,8 @@
     <Reference Include="KKSABMX">
       <HintPath>..\Custom Dependencies\KKSABMX.dll</HintPath>
     </Reference>
-    <Reference Include="KKSAPI, Version=1.39.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\IllusionModdingAPI.KKSAPI.1.39.0\lib\net46\KKSAPI.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="KKSAPI, Version=1.43.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\IllusionModdingAPI.KKSAPI.1.43.0\lib\net46\KKSAPI.dll</HintPath>
     </Reference>
     <Reference Include="KKSPE">
       <HintPath>..\Custom Dependencies\KKSPE.dll</HintPath>
@@ -168,6 +167,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
