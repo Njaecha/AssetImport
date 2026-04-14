@@ -11,6 +11,10 @@ using Unity.Collections;
 using Material = UnityEngine.Material;
 using Mesh = UnityEngine.Mesh;
 using IllusionUtility.GetUtility;
+using Matrix4x4 = System.Numerics.Matrix4x4;
+using sVector3 = System.Numerics.Vector3;
+using sQuaternion = System.Numerics.Quaternion;
+
 // ReSharper disable RedundantNameQualifier
 
 namespace AssetImport
@@ -165,7 +169,9 @@ namespace AssetImport
             else
             {
                 // load asset from stream
-			    _scene = imp.ImportFileFromStream(RamCacheUtility.GetFileStream(SourceIdentifier), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
+                string filename = RamCacheUtility.GetFileName(SourceIdentifier).ToLower();
+                string fileHint = filename.Substring(filename.LastIndexOf(".") + 1);
+			    _scene = imp.ImportFileFromStream(RamCacheUtility.GetFileStream(SourceIdentifier), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate, fileHint);
             }
             
             if (_scene == null)
@@ -195,18 +201,47 @@ namespace AssetImport
                 }
             }
         }
+        
+        private static Vector3 ExtractScaleFromMatrix(Matrix4x4 matrix)
+        {
+            Vector3 scale;
+            scale.x = new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41).magnitude;
+            scale.y = new Vector4(matrix.M12, matrix.M22, matrix.M32, matrix.M42).magnitude;
+            scale.z = new Vector4(matrix.M13, matrix.M23, matrix.M33, matrix.M43).magnitude;
+            return scale;
+        }
+        
+        private static Quaternion ExtractRotationFromMatrix(Matrix4x4 matrix)
+        {
+            // Extract the columns as vectors
+            Vector3 forward = new Vector3(matrix.M13, matrix.M23, matrix.M33);
+            Vector3 up = new Vector3(matrix.M12, matrix.M22, matrix.M32);
 
-		private static void ConvertTransform(Assimp.Matrix4x4 aTransform, Transform uTransform)
+            // If there is scaling, LookRotation might fail or be inaccurate, 
+            // so it's safer to use the matrix's internal rotation conversion if available,
+            // or ensure these vectors are normalized.
+            return Quaternion.LookRotation(forward, up);
+        }
+
+        private static Vector3 ExtractTranslationFromMatrix(Matrix4x4 matrix)
+        {
+            return new UnityEngine.Vector3(matrix.M14, matrix.M24, matrix.M34);
+        }
+        
+
+		private static void ConvertTransform(Matrix4x4 aTransform, Transform uTransform)
 		{
+            /*
             // Decompose Assimp transform into scale, rot and translation 
-            aTransform.Decompose(out Assimp.Vector3D aScale, out Assimp.Quaternion aQuat, out Assimp.Vector3D aTranslation);
+            Matrix4x4.Decompose(aTransform, out sVector3 aScale, out sQuaternion aQuat, out sVector3 aTranslation);
 
             // Convert Assimp transform into Unity transform and set transformation of game object 
             UnityEngine.Quaternion uQuat = new UnityEngine.Quaternion(aQuat.X, aQuat.Y, aQuat.Z, aQuat.W);
             Vector3 euler = uQuat.eulerAngles;
-            uTransform.localScale = new UnityEngine.Vector3(aScale.X, aScale.Y, aScale.Z);
-            uTransform.localPosition = new UnityEngine.Vector3(aTranslation.X, aTranslation.Y, aTranslation.Z);
-            uTransform.localRotation = UnityEngine.Quaternion.Euler(euler.x, euler.y, euler.z);
+            */
+            uTransform.localScale = ExtractScaleFromMatrix(aTransform);
+            uTransform.localPosition = ExtractTranslationFromMatrix(aTransform);
+            uTransform.localRotation = ExtractRotationFromMatrix(aTransform);
         }
 
         private readonly List<string> _subobjectNameList = new List<string>();
@@ -226,8 +261,8 @@ namespace AssetImport
 
             if (!DoFbxTranslation || !(node.Name.Contains("$AssimpFbx$_Translation") && _scene.RootNode.Equals(node.Parent)))
 			    ConvertTransform(node.Transform, nodeObject.transform);
-
-			if (node.HasMeshes)
+            
+            if (node.HasMeshes)
 			{
 				foreach(int meshIndex in node.MeshIndices)
 				{
@@ -263,7 +298,7 @@ namespace AssetImport
 
                     // nameConvention to create unique name: meshName_materialName
                     GameObject subObjet = new GameObject(subobjectName);
-					subObjet.transform.SetParent(nodeObject.transform, true);
+					subObjet.transform.SetParent(nodeObject.transform, false);
 					// set layer to 10 for koi
 					subObjet.layer = 10;
 
@@ -318,10 +353,10 @@ namespace AssetImport
                 if (material.HasColorDiffuse)
                 {
                     Color color = new Color(
-                        material.ColorDiffuse.R,
-                        material.ColorDiffuse.G,
-                        material.ColorDiffuse.B,
-                        material.ColorDiffuse.A
+                        material.ColorDiffuse.X,
+                        material.ColorDiffuse.Y,
+                        material.ColorDiffuse.Z,
+                        material.ColorDiffuse.W
                     );
                     uMaterial.color = color;
                 }
@@ -616,12 +651,13 @@ namespace AssetImport
             }
         }
 
-        private static UnityEngine.Matrix4x4 ConvertBindpose(Assimp.Matrix4x4 offsetMatrix)
+        private static UnityEngine.Matrix4x4 ConvertBindpose(Matrix4x4 offsetMatrix)
         {
-            offsetMatrix.Decompose(out Vector3D aScl, out Assimp.Quaternion aQ, out Vector3D aPos);
-            Vector3 pos = new Vector3(aPos.X, aPos.Y, aPos.Z);
-            UnityEngine.Quaternion q = new UnityEngine.Quaternion(aQ.X, aQ.Y, aQ.Z, aQ.W);
-            Vector3 s = new Vector3(aScl.X, aScl.Y, aScl.Z);
+            //Matrix4x4.Decompose(offsetMatrix,out sVector3 aScl, out sQuaternion aQ, out sVector3 aPos);
+            
+            Vector3 pos = ExtractTranslationFromMatrix(offsetMatrix);
+            UnityEngine.Quaternion q = ExtractRotationFromMatrix(offsetMatrix);
+            Vector3 s = ExtractScaleFromMatrix(offsetMatrix);
 
             UnityEngine.Matrix4x4 bindPose = UnityEngine.Matrix4x4.TRS(pos, q, s);
             return bindPose;
