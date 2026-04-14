@@ -202,46 +202,25 @@ namespace AssetImport
             }
         }
         
-        private static Vector3 ExtractScaleFromMatrix(Matrix4x4 matrix)
-        {
-            Vector3 scale;
-            scale.x = new Vector4(matrix.M11, matrix.M21, matrix.M31, matrix.M41).magnitude;
-            scale.y = new Vector4(matrix.M12, matrix.M22, matrix.M32, matrix.M42).magnitude;
-            scale.z = new Vector4(matrix.M13, matrix.M23, matrix.M33, matrix.M43).magnitude;
-            return scale;
-        }
         
-        private static Quaternion ExtractRotationFromMatrix(Matrix4x4 matrix)
-        {
-            // Extract the columns as vectors
-            Vector3 forward = new Vector3(matrix.M13, matrix.M23, matrix.M33);
-            Vector3 up = new Vector3(matrix.M12, matrix.M22, matrix.M32);
-
-            // If there is scaling, LookRotation might fail or be inaccurate, 
-            // so it's safer to use the matrix's internal rotation conversion if available,
-            // or ensure these vectors are normalized.
-            return Quaternion.LookRotation(forward, up);
-        }
-
-        private static Vector3 ExtractTranslationFromMatrix(Matrix4x4 matrix)
-        {
-            return new UnityEngine.Vector3(matrix.M14, matrix.M24, matrix.M34);
+        // 1. Convert System.Numerics (Row-Major) to Unity (Column-Major)
+        private static UnityEngine.Matrix4x4 ToUnityMatrix(Matrix4x4 m) {
+            UnityEngine.Matrix4x4 matrix = new UnityEngine.Matrix4x4();
+            matrix.SetColumn(0, new Vector4(m.M11, m.M21, m.M31, m.M41));
+            matrix.SetColumn(1, new Vector4(m.M12, m.M22, m.M32, m.M42));
+            matrix.SetColumn(2, new Vector4(m.M13, m.M23, m.M33, m.M43));
+            matrix.SetColumn(3, new Vector4(m.M14, m.M24, m.M34, m.M44));
+            return matrix;
         }
         
 
 		private static void ConvertTransform(Matrix4x4 aTransform, Transform uTransform)
 		{
-            /*
-            // Decompose Assimp transform into scale, rot and translation 
-            Matrix4x4.Decompose(aTransform, out sVector3 aScale, out sQuaternion aQuat, out sVector3 aTranslation);
+            UnityEngine.Matrix4x4 uMatrix = ToUnityMatrix(aTransform);
 
-            // Convert Assimp transform into Unity transform and set transformation of game object 
-            UnityEngine.Quaternion uQuat = new UnityEngine.Quaternion(aQuat.X, aQuat.Y, aQuat.Z, aQuat.W);
-            Vector3 euler = uQuat.eulerAngles;
-            */
-            uTransform.localScale = ExtractScaleFromMatrix(aTransform);
-            uTransform.localPosition = ExtractTranslationFromMatrix(aTransform);
-            uTransform.localRotation = ExtractRotationFromMatrix(aTransform);
+            uTransform.localScale = new Vector3(uMatrix.GetColumn(0).magnitude, uMatrix.GetColumn(1).magnitude, uMatrix.GetColumn(2).magnitude);
+            uTransform.localPosition = uMatrix.GetColumn(3);
+            uTransform.localRotation = uMatrix.rotation;
         }
 
         private readonly List<string> _subobjectNameList = new List<string>();
@@ -653,14 +632,7 @@ namespace AssetImport
 
         private static UnityEngine.Matrix4x4 ConvertBindpose(Matrix4x4 offsetMatrix)
         {
-            //Matrix4x4.Decompose(offsetMatrix,out sVector3 aScl, out sQuaternion aQ, out sVector3 aPos);
-            
-            Vector3 pos = ExtractTranslationFromMatrix(offsetMatrix);
-            UnityEngine.Quaternion q = ExtractRotationFromMatrix(offsetMatrix);
-            Vector3 s = ExtractScaleFromMatrix(offsetMatrix);
-
-            UnityEngine.Matrix4x4 bindPose = UnityEngine.Matrix4x4.TRS(pos, q, s);
-            return bindPose;
+            return ToUnityMatrix(offsetMatrix);
         }
 
         private void ProcessArmature(Assimp.Mesh mesh, SkinnedMeshRenderer renderer, string name)
