@@ -103,8 +103,8 @@ namespace AssetImport
             {
                 string dir = (FilePath == "") ? Main.defaultDir.Value : FilePath.Replace(FilePath.Substring(FilePath.LastIndexOf("/")), "");
                 string[] file = KKAPI.Utilities.OpenFileDialog.ShowDialog("Open 3D file", dir,
-                        "3D files (*.fbx; *.dae; *.gltf;  *.blend; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd) " +
-                        "|*.fbx; *.dae; *.gltf; *.blend; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd | All files (*.*)|*.*",
+                        "3D files (*.fbx; *.dae; *.gltf; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd) " +
+                        "|*.fbx; *.dae; *.gltf; *.3ds; *.ase; *.obj; *.ifc; *.xgl; *.ply; *.dxf; *.lwo; *.lws; *.lxo; *.stl; *.x; *.ac; *.ms3d; *.smd | All files (*.*)|*.*",
                         "obj", SingleFileFlags);
                 if (file != null)
                 {
@@ -125,6 +125,8 @@ namespace AssetImport
             {
                 PerRendererMaterials = !PerRendererMaterials;
             }
+            // no longer used as of v4.0.0
+            /*
             if (Path.GetExtension(FilePath).ToLower() == ".fbx")
             {
                 if (GUI.Button(new Rect(10, y += 25, 220, 25), DoFbxTranslation ? "☑ Ignore Root translation" : "☐ Ignore Root Translation"))
@@ -132,6 +134,7 @@ namespace AssetImport
                     DoFbxTranslation = !DoFbxTranslation;
                 }
             }
+            */
 
             GUI.Label(new Rect(10, y+=30, 160, 25), $"Scaling-factor: {Scales[ScaleSelection]}");
             if (ScaleSelection == 0) GUI.enabled = false;

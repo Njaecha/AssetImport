@@ -11,6 +11,7 @@ using Unity.Collections;
 using Material = UnityEngine.Material;
 using Mesh = UnityEngine.Mesh;
 using IllusionUtility.GetUtility;
+using NodeCanvas.Tasks.Actions;
 using Matrix4x4 = System.Numerics.Matrix4x4;
 using sVector3 = System.Numerics.Vector3;
 using sQuaternion = System.Numerics.Quaternion;
@@ -49,7 +50,7 @@ namespace AssetImport
         public bool IsLoaded { get; private set; }
 
 		public readonly bool ImportBones;
-        public readonly bool DoFbxTranslation;
+        public readonly bool DoFbxTranslation; // no longer used
         public readonly bool PerRendererMaterials;
         public readonly bool LoadBlendshapes;
         
@@ -158,7 +159,8 @@ namespace AssetImport
                     extraFiles.ForEach(file => File.WriteAllBytes(Path.Combine(temp, folder, RamCacheUtility.GetFileName(file)), RamCacheUtility.GetFileBlob(file)));
 
                     // load asset from file on disk to be able to load extra files.
-                    _scene = imp.ImportFile(Path.Combine(temp, folder, RamCacheUtility.GetFileName(SourceIdentifier)), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
+                    _scene = imp.ImportFile(Path.Combine(temp, folder, RamCacheUtility.GetFileName(SourceIdentifier)), 
+                        PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate);
                 }
                 catch(IOException e)
                 {
@@ -171,7 +173,9 @@ namespace AssetImport
                 // load asset from stream
                 string filename = RamCacheUtility.GetFileName(SourceIdentifier).ToLower();
                 string fileHint = filename.Substring(filename.LastIndexOf(".") + 1);
-			    _scene = imp.ImportFileFromStream(RamCacheUtility.GetFileStream(SourceIdentifier), PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate, fileHint);
+			    _scene = imp.ImportFileFromStream(RamCacheUtility.GetFileStream(SourceIdentifier), 
+                    PostProcessSteps.MakeLeftHanded | PostProcessSteps.Triangulate, 
+                    fileHint);
             }
             
             if (_scene == null)
@@ -214,13 +218,18 @@ namespace AssetImport
         }
         
 
-		private static void ConvertTransform(Matrix4x4 aTransform, Transform uTransform)
+		private static UnityEngine.Matrix4x4 ConvertTransform(Matrix4x4 aTransform, Transform uTransform)
 		{
             UnityEngine.Matrix4x4 uMatrix = ToUnityMatrix(aTransform);
 
-            uTransform.localScale = new Vector3(uMatrix.GetColumn(0).magnitude, uMatrix.GetColumn(1).magnitude, uMatrix.GetColumn(2).magnitude);
+            uTransform.localScale = new Vector3(
+                uMatrix.GetColumn(0).magnitude, 
+                uMatrix.GetColumn(1).magnitude, 
+                uMatrix.GetColumn(2).magnitude * (uMatrix.determinant < 0 ? -1f : 1f)); // make sure that if the transform was mirrored we keep a negative scale
             uTransform.localPosition = uMatrix.GetColumn(3);
             uTransform.localRotation = uMatrix.rotation;
+            
+            return uMatrix;
         }
 
         private readonly List<string> _subobjectNameList = new List<string>();
@@ -237,10 +246,17 @@ namespace AssetImport
 		private GameObject BuildFromNode(Assimp.Node node)
 		{
             GameObject nodeObject = new GameObject(node.Name);
-
-            if (!DoFbxTranslation || !(node.Name.Contains("$AssimpFbx$_Translation") && _scene.RootNode.Equals(node.Parent)))
-			    ConvertTransform(node.Transform, nodeObject.transform);
             
+            // since the new assimp version doesn't spawn $AssimpFbx$_Translation nodes, the second operant will always be true, defeating the purpose of this if
+            // lines kept for documentation purposes
+            /*
+            if (!DoFbxTranslation || !(node.Name.Contains("$AssimpFbx$_Translation") && _scene.RootNode.Equals(node.Parent)))
+            {
+                UnityEngine.Matrix4x4 unityMatrix = ConvertTransform(node.Transform, nodeObject.transform);
+            }
+            */
+            ConvertTransform(node.Transform, nodeObject.transform);
+
             if (node.HasMeshes)
 			{
 				foreach(int meshIndex in node.MeshIndices)
@@ -282,7 +298,7 @@ namespace AssetImport
 					subObjet.layer = 10;
 
                     Renderer rend;
-
+                    
 					if (mesh.HasBones && ImportBones)
 					{
                         rend = subObjet.AddComponent<SkinnedMeshRenderer>();
