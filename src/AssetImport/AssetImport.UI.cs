@@ -24,7 +24,6 @@ namespace AssetImport
         internal static readonly float[] Scales = { 10f, 5f, 2f, 1.5f, 1.0f, 0.5f, 0.1f, 0.01f, 0.001f, 0.0001f };
         internal static bool ImportBones = true;
         internal static bool PerRendererMaterials;
-        internal static bool DoFbxTranslation;
         internal static bool LoadBlendshapes = true;
         
         // preload
@@ -125,6 +124,7 @@ namespace AssetImport
             {
                 PerRendererMaterials = !PerRendererMaterials;
             }
+            
             // no longer used as of v4.0.0
             /*
             if (Path.GetExtension(FilePath).ToLower() == ".fbx")
@@ -153,7 +153,7 @@ namespace AssetImport
             if (GUI.Button(new Rect(10, y+=25, 220, 30), "Import"))
             {
                 if (KoikatuAPI.GetCurrentGameMode() == GameMode.Studio)
-                    Main.asc.Import(FilePath, new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]), ImportBones, PerRendererMaterials, DoFbxTranslation, LoadBlendshapes);
+                    Main.asc.Import(FilePath, new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]), ImportBones, PerRendererMaterials, LoadBlendshapes);
                 else if (KoikatuAPI.GetCurrentGameMode() == GameMode.Maker)
                 {
                     int slot = AccessoriesApi.SelectedMakerAccSlot;
@@ -169,7 +169,6 @@ namespace AssetImport
                             new Vector3(Scales[ScaleSelection], Scales[ScaleSelection], Scales[ScaleSelection]),
                             ImportBones,
                             PerRendererMaterials,
-                            DoFbxTranslation,
                             LoadBlendshapes);
                     }
                     else Main.Logger.LogMessage("Please select an accessory which you want to replace!");

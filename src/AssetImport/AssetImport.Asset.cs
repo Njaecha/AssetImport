@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using MessagePack;
 
 namespace AssetImport
@@ -22,6 +23,6 @@ namespace AssetImport
         [Key("perRendererMaterials")]
         public bool PerRendererMaterials { get; set; } = false;
         [Key("doFbxTranslation")]
-        public bool DoFbxTranslation { get; set; } = false;
+        [Obsolete] public bool DoFbxTranslation { get; set; } = false;
     }
 }

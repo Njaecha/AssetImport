@@ -104,8 +104,7 @@ namespace AssetImport
                     Identifier = destination,
                     Scale = loadedObjects[cSet][source].Scale,
                     HasBones = loadedObjects[cSet][source].HasBones,
-                    PerRendererMaterials = loadedObjects[cSet][source].PerRendererMaterials,
-                    DoFbxTranslation = loadedObjects[cSet][source].DoFbxTranslation
+                    PerRendererMaterials = loadedObjects[cSet][source].PerRendererMaterials
                 };
                 loadedObjects[cSet][destination] = asset;
                 Logger.LogDebug($"Source slot {source} --> Destination slot {destination}");
@@ -145,7 +144,6 @@ namespace AssetImport
                     asset.Scale = loadedObjects[source][slot].Scale;
                     asset.HasBones = loadedObjects[source][slot].HasBones;
                     asset.PerRendererMaterials = loadedObjects[source][slot].PerRendererMaterials;
-                    asset.DoFbxTranslation = loadedObjects[source][slot].DoFbxTranslation;
                     loadedObjects[destination][slot] = asset;
                     Logger.LogDebug($"Source: Type {source}, Slot {slot} --> Destination: Type {destination}");
                 }
@@ -674,7 +672,6 @@ namespace AssetImport
                     asset.SourceFile,
                     asset.HasBones,
                     Instantiate(accessory.Accessory.gameObject.GetComponentInChildren<Renderer>().material),
-                    asset.DoFbxTranslation,
                     asset.PerRendererMaterials);
                 import.Load();
                 if (!import.IsLoaded)
@@ -727,7 +724,7 @@ namespace AssetImport
             ChaControl.infoAccessory[slot] = listInfoBase;
         }
 
-        public void Import(int slot, int type, string parent, string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation,bool loadBlendshapes)
+        public void Import(int slot, int type, string parent, string path, Vector3 scale, bool armature, bool perRendererMaterials, bool loadBlendshapes)
         {
             // unify path structure
             path = path.Replace("\"", "");
@@ -764,7 +761,6 @@ namespace AssetImport
                 identifierHash,
                 armature, 
                 baseMaterial, 
-                doFbxTranslation, 
                 perRendererMaterials,
                 loadBlendshapes
             );
@@ -903,7 +899,6 @@ namespace AssetImport
                 asset.Scale = new float[] { loadProcess.Scale.x, loadProcess.Scale.y, loadProcess.Scale.z };
                 asset.HasBones = loadProcess.Import.HasBones;
                 asset.PerRendererMaterials = loadProcess.Import.PerRendererMaterials;
-                asset.DoFbxTranslation = loadProcess.Import.DoFbxTranslation;
 
                 if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) loadedObjects[ChaControl.fileStatus.coordinateType] = new Dictionary<int, Asset>();
                 loadedObjects[ChaControl.fileStatus.coordinateType][asset.Identifier] = asset;

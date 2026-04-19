@@ -50,7 +50,6 @@ namespace AssetImport
         public bool IsLoaded { get; private set; }
 
 		public readonly bool ImportBones;
-        public readonly bool DoFbxTranslation; // no longer used
         public readonly bool PerRendererMaterials;
         public readonly bool LoadBlendshapes;
         
@@ -65,10 +64,9 @@ namespace AssetImport
         private static readonly int MeshBTangents = Shader.PropertyToID("meshB_Tangents");
         private static readonly int DeltaTangents = Shader.PropertyToID("delta_Tangents");
 
-        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool doFbxTranslation = true, bool perRendererMaterials = false, bool loadBlendshapes = true)
+        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool perRendererMaterials = false, bool loadBlendshapes = true)
 		{
 			ImportBones = importArmature;
-            DoFbxTranslation = doFbxTranslation;
             PerRendererMaterials = perRendererMaterials;
             LoadBlendshapes = loadBlendshapes;
             
