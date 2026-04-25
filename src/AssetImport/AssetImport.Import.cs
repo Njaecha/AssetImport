@@ -290,30 +290,30 @@ namespace AssetImport
                     _subobjectNameList.Add(subobjectName);
 
                     // nameConvention to create unique name: meshName_materialName
-                    GameObject subObjet = new GameObject(subobjectName);
-					subObjet.transform.SetParent(nodeObject.transform, false);
+                    GameObject subObject = new GameObject(subobjectName);
+					subObject.transform.SetParent(nodeObject.transform, false);  
 					// set layer to 10 for koi
-					subObjet.layer = 10;
-
+					subObject.layer = 10;
+                    
                     Renderer rend;
                     
 					if (mesh.HasBones && ImportBones)
 					{
-                        rend = subObjet.AddComponent<SkinnedMeshRenderer>();
+                        rend = subObject.AddComponent<SkinnedMeshRenderer>();
                         ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
 
-                        _processArmaturesLater.Add(new Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>(subObjet, mesh, (SkinnedMeshRenderer)rend));
+                        _processArmaturesLater.Add(new Tuple<GameObject, Assimp.Mesh, SkinnedMeshRenderer>(subObject, mesh, (SkinnedMeshRenderer)rend));
 					}
                     else if (mesh.HasMeshAnimationAttachments) // mesh doesn't have bones but has Blendshapes.
                     {
-                        rend = subObjet.AddComponent<SkinnedMeshRenderer>();
+                        rend = subObject.AddComponent<SkinnedMeshRenderer>();
                         ((SkinnedMeshRenderer)rend).sharedMesh = uMesh;
                     }
 					else
 					{
-                        MeshFilter mFilter = subObjet.AddComponent<MeshFilter>();
+                        MeshFilter mFilter = subObject.AddComponent<MeshFilter>();
                         mFilter.mesh = uMesh;
-						rend = subObjet.AddComponent<MeshRenderer>();
+						rend = subObject.AddComponent<MeshRenderer>();
 					}
 
                     rend.name = subobjectName;
