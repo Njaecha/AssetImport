@@ -291,7 +291,7 @@ namespace AssetImport
 
                     // nameConvention to create unique name: meshName_materialName
                     GameObject subObject = new GameObject(subobjectName);
-					subObject.transform.SetParent(nodeObject.transform, false);  
+					subObject.transform.SetParent(nodeObject.transform, true);
 					// set layer to 10 for koi
 					subObject.layer = 10;
                     
@@ -445,6 +445,7 @@ namespace AssetImport
                 Mesh uMesh = new Mesh();
                 var uVertices = new List<Vector3>();
                 var uNormals = new List<Vector3>();
+                var uTangents = new List<Vector4>();
                 var uUv = new List<Vector2>();
                 var uIndices = new List<int>();
 
@@ -492,12 +493,30 @@ namespace AssetImport
                     Logger.LogDebug($"UV Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
                 }
 
+                // Tangents
+                if (mesh.HasTangentBasis)
+                {
+                    Stopwatch.Restart();
+                    for (int i = 0; i < mesh.Tangents.Count; i++)
+                    {
+                        Vector3 tangent = new Vector3(mesh.Tangents[i].X, mesh.Tangents[i].Y, mesh.Tangents[i].Z);
+                        Vector3 bitangent = new Vector3(mesh.BiTangents[i].X, mesh.BiTangents[i].Y, mesh.BiTangents[i].Z);
+                        Vector3 normal = uNormals[i];
+                        // handedness sign: reconstruct which way the bitangent points relative to N x T
+                        float w = Vector3.Dot(Vector3.Cross(normal, tangent), bitangent) < 0f ? -1f : 1f;
+                        uTangents.Add(new Vector4(tangent.x, tangent.y, tangent.z, w));
+                    }
+                    Stopwatch.Stop();
+                    Logger.LogDebug($"{mesh.Tangents.Count} Tangents Converted in {Stopwatch.Elapsed.TotalMilliseconds} ms");
+                }
+
                 if (uVertices.Count > 65000) uMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
                 uMesh.name = mesh.Name;
                 uMesh.vertices = uVertices.ToArray();
                 uMesh.normals = uNormals.ToArray();
                 uMesh.triangles = uIndices.ToArray();
                 uMesh.uv = uUv.ToArray();
+                uMesh.tangents = uTangents.ToArray();
                 
                 if (mesh.HasMeshAnimationAttachments && LoadBlendshapes)
                 {
@@ -646,7 +665,22 @@ namespace AssetImport
 
         private static UnityEngine.Matrix4x4 ConvertBindpose(Matrix4x4 offsetMatrix)
         {
-            return ToUnityMatrix(offsetMatrix);
+            UnityEngine.Matrix4x4 m = ToUnityMatrix(offsetMatrix);
+            /*
+            Vector4 c0 = m.GetColumn(0);
+            Vector4 c1 = m.GetColumn(1);
+            Vector4 c2 = m.GetColumn(2);
+            float s0 = c0.magnitude, s1 = c1.magnitude, s2 = c2.magnitude;
+            // Threshold to avoid stripping scale from columns that are essentially unit length (floating point noise).
+            bool passedThreshold = Mathf.Abs(s0 - 1f) > 0.001f || Mathf.Abs(s1 - 1f) > 0.001f || Mathf.Abs(s2 - 1f) > 0.001f; 
+            if (passedThreshold)
+            {
+                Vector4 translation = m.GetColumn(3);
+                m = UnityEngine.Matrix4x4.TRS(translation, UnityEngine.Quaternion.identity, Vector3.one);
+                scaleStripped = true;
+            }
+            */
+            return m;
         }
 
         private void ProcessArmature(Assimp.Mesh mesh, SkinnedMeshRenderer renderer, string name)
@@ -677,7 +711,6 @@ namespace AssetImport
                 if (!Bones.Contains(uBone)) Bones.Add(uBone);
                 rendBones.Add(uBone);
             }
-
             // fill bones on renderer
             renderer.bones = rendBones.ToArray();
 
