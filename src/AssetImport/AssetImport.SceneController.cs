@@ -238,7 +238,6 @@ namespace AssetImport
                             asset.SourceFile,
                             asset.HasBones,
                             Instantiate(((OCIItem)newOCI).objectItem.GetComponentInChildren<MeshRenderer>().material),
-                            asset.DoFbxTranslation,
                             asset.PerRendererMaterials);
 
                         import.Load();
@@ -316,7 +315,6 @@ namespace AssetImport
                     oldAsset.SourceFile,
                     oldAsset.HasBones, 
                     Instantiate(newItem.objectItem.GetComponentInChildren<MeshRenderer>().material),
-                    oldAsset.DoFbxTranslation,
                     oldAsset.PerRendererMaterials
                 );
                 import.Load();
@@ -342,10 +340,9 @@ namespace AssetImport
         /// <param name="scale"></param>
         /// <param name="armature"></param>
         /// <param name="perRendererMaterials"></param>
-        /// <param name="doFbxTranslation"></param>
-        /// <param name="LoadBlendshapes"></param>
+        /// <param name="loadBlendshapes"></param>
         /// <returns></returns>
-        public void Import(string path, Vector3 scale, bool armature, bool perRendererMaterials, bool doFbxTranslation, bool loadBlendshapes)
+        public void Import(string path, Vector3 scale, bool armature, bool perRendererMaterials, bool loadBlendshapes)
         {
             // unify path structure
             path = path.Replace("\"", "");
@@ -380,7 +377,6 @@ namespace AssetImport
                 hash,
                 armature, 
                 baseMaterial, 
-                doFbxTranslation, 
                 perRendererMaterials,
                 loadBlendshapes
             );
@@ -566,7 +562,6 @@ namespace AssetImport
                 asset.Scale = new float[] { loadProcess.Scale.x, loadProcess.Scale.y, loadProcess.Scale.z };
                 asset.HasBones = loadProcess.Import.HasBones;
                 asset.PerRendererMaterials = loadProcess.Import.PerRendererMaterials;
-                asset.DoFbxTranslation = loadProcess.Import.DoFbxTranslation;
 
                 LoadedObjects[ociitem.itemInfo.dicKey] = asset;
             }
