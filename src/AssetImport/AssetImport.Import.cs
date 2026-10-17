@@ -29,6 +29,7 @@ namespace AssetImport
 		private string _cPath;
 		private readonly Material _bMat;
 		private readonly List<TexturePath> _tPaths;
+		private readonly string _sourceDirectory;
 		private static readonly ManualLogSource Logger = AssetImport.Logger;
 		private Assimp.Scene _scene;
 
@@ -64,12 +65,14 @@ namespace AssetImport
         private static readonly int MeshBTangents = Shader.PropertyToID("meshB_Tangents");
         private static readonly int DeltaTangents = Shader.PropertyToID("delta_Tangents");
 
-        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool perRendererMaterials = false, bool loadBlendshapes = true)
+        /// <param name="sourceDirectory">Directory of the original file on disk. Used to resolve relative texture paths; null if unknown (e.g. loaded from cache)</param>
+        public Import(string identifierHash, bool importArmature = true, Material baseMat = null, bool perRendererMaterials = false, bool loadBlendshapes = true, string sourceDirectory = null)
 		{
 			ImportBones = importArmature;
             PerRendererMaterials = perRendererMaterials;
             LoadBlendshapes = loadBlendshapes;
-            
+            _sourceDirectory = sourceDirectory;
+
 			SourceIdentifier = identifierHash;
 			if (!baseMat) baseMat = new Material(Shader.Find("Standard"));
 			_bMat = baseMat;
@@ -332,6 +335,25 @@ namespace AssetImport
             return nodeObject;
         }
 
+        /// <summary>
+        /// Makes a texture path stored in the model absolute, relative to the source file's directory.
+        /// Absolute paths, embedded texture references ("*0") and paths that can't be resolved are returned unchanged.
+        /// </summary>
+        private string ResolveTexturePath(string texturePath)
+        {
+            if (_sourceDirectory.IsNullOrEmpty() || texturePath.IsNullOrEmpty() || texturePath.StartsWith("*")) return texturePath;
+            try
+            {
+                if (Path.IsPathRooted(texturePath)) return texturePath;
+                return Path.GetFullPath(Path.Combine(_sourceDirectory, texturePath));
+            }
+            catch (Exception e)
+            {
+                Logger.LogDebug($"Could not resolve texture path {texturePath}: {e.Message}");
+                return texturePath;
+            }
+        }
+
 		private void ProcessMaterials()
 		{
             Logger.LogDebug("Processing Materials");
@@ -377,55 +399,55 @@ namespace AssetImport
                 MaterialTextures[uMaterial] = new List<TexturePath>();
                 if (material.HasTextureDiffuse)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Diffuse, material.TextureDiffuse.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Diffuse, ResolveTexturePath(material.TextureDiffuse.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureDisplacement)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Displacement, material.TextureDisplacement.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Displacement, ResolveTexturePath(material.TextureDisplacement.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureEmissive)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Emissive, material.TextureEmissive.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Emissive, ResolveTexturePath(material.TextureEmissive.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureHeight)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Height, material.TextureHeight.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Height, ResolveTexturePath(material.TextureHeight.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureLightMap)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Lightmap, material.TextureLightMap.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Lightmap, ResolveTexturePath(material.TextureLightMap.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureNormal)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Normals, material.TextureNormal.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Normals, ResolveTexturePath(material.TextureNormal.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureOpacity)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Opacity, material.TextureOpacity.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Opacity, ResolveTexturePath(material.TextureOpacity.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureReflection)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Reflection, material.TextureReflection.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Reflection, ResolveTexturePath(material.TextureReflection.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }
                 if (material.HasTextureSpecular)
                 {
-                    TexturePath tP = new TexturePath(uMaterial, TextureType.Specular, material.TextureSpecular.FilePath);
+                    TexturePath tP = new TexturePath(uMaterial, TextureType.Specular, ResolveTexturePath(material.TextureSpecular.FilePath));
                     MaterialTextures[uMaterial].Add(tP);
                     _tPaths.Add(tP);
                 }

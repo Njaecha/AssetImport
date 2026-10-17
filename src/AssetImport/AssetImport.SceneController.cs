@@ -378,7 +378,8 @@ namespace AssetImport
                 armature, 
                 baseMaterial, 
                 perRendererMaterials,
-                loadBlendshapes
+                loadBlendshapes,
+                Path.GetDirectoryName(path)
             );
             import.Load();
             if (!import.IsLoaded) return;
