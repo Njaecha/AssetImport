@@ -1,0 +1,128 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+jobs:
+  build:
+    name: Build, test and package KK / KKS
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.11'
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .build-downloads
+          key: runtimes-${{ runner.os }}-${{ hashFiles('scripts/dependencies.json', 'scripts/kks-runtime.json', 'scripts/prepare_kks_runtime.py', 'scripts/package_kks.py') }}
+      - name: Set build identity
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$') {
+            throw 'Release tags must use vMAJOR.MINOR.PATCH with an optional prerelease suffix.'
+          }
+          $epoch = git show -s --format=%ct HEAD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "SOURCE_DATE_EPOCH=$epoch" >> $env:GITHUB_ENV
+      - name: Restore verified build references
+        run: python scripts/prepare_dependencies.py
+      - name: Compile both games and run regression checks
+        run: |
+          python scripts/validate.py --locked-mode 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/validation.log"
+          exit $LASTEXITCODE
+      - name: Restore verified KKS runtime
+        run: python scripts/prepare_kks_runtime.py
+      - name: Package KK, KKS and source
+        run: |
+          python scripts/package.py --source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/package_kks.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/verify_packages.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (git status --porcelain --untracked-files=normal) { throw 'Build modified the source tree.' }
+      - name: Upload packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages-${{ github.sha }}
+          path: artifacts/g*/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+      - name: Upload validation log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: validation-${{ github.sha }}
+          path: ${{ runner.temp }}/validation.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: Publish tagged release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages-${{ github.sha }}
+          path: release-assets
+      - name: Publish verified packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          actual_commit=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)
+          [[ "$actual_commit" == "$EXPECTED_COMMIT" ]] || { echo 'Tag moved since this build started.' >&2; exit 1; }
+          # upload-artifact preserves the build directory below the wildcard.
+          mapfile -t package_dirs < <(find release-assets -name 'KK_AssetImport_*_Packed.zip' -printf '%h\n')
+          [[ ${#package_dirs[@]} -eq 1 ]] || { echo 'Expected exactly one package set.' >&2; exit 1; }
+          cd "${package_dirs[0]}"
+          sha256sum --check ./*.zip.sha256
+          files=(./*.zip ./*.zip.sha256 ./*.manifest.json)
+          flags=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then flags+=(--prerelease --latest=false); fi
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            [[ "$draft" == true ]] || { echo 'Release already published; refusing to replace its assets.' >&2; exit 1; }
+            gh release upload "$RELEASE_TAG" "${files[@]}" --clobber
+            gh release edit "$RELEASE_TAG" --draft=false "${flags[@]}"
+          else
+            gh release create "$RELEASE_TAG" "${files[@]}" --verify-tag \
+              --title "$RELEASE_TAG" --generate-notes "${flags[@]}"
+          fi

@@ -1,0 +1,44 @@
+AssetImport for Koikatsu (KK)
+安装说明 / Installation
+
+Requires Windows x64, BepInEx 5.4.22+ (5.x), KKAPI 1.45.1+,
+KK MaterialEditor 4.0.3+, and the KK build of LoadFileLimitedFix.
+前置插件需单独安装。
+
+1. Close the game and Studio.
+   退出游戏和 Studio。
+2. Extract both BepInEx and runtimes into the folder containing Koikatu.exe.
+   将 BepInEx 和 runtimes 一起解压到 Koikatu.exe 所在目录，保留目录结构。
+3. Move obsolete AssetImport DLL copies out of BepInEx/plugins.
+   将旧插件的多余副本移出 BepInEx/plugins；仅重命名仍可能重复加载。
+4. Start the game and press Left Alt + I. Select an existing accessory in Maker.
+   启动游戏，按左 Alt + I。角色编辑器需先选一个已有饰品。
+
+Main files / 主要文件：
+BepInEx/plugins/AssetImport/KK_AssetImport.dll
+BepInEx/plugins/AssetImport/AssimpNet.dll
+BepInEx/plugins/AssetImport/LitJSON.dll
+runtimes/win-x64/native/assimp.dll
+
+Use the complete package for first installation or when runtime libraries change.
+Do not place the ZIP in mods or mix KK and KKS libraries.
+首次安装或运行库变更时请用完整包。不要把 ZIP 放进 mods，不要混用 KK/KKS 运行库。
+
+Keep model textures in their original relative folders. For PMX, start with
+PMX / VMD preset and Scaling-factor 1. Wait for Textures ready before saving.
+保留模型贴图的相对目录；PMX 可先使用 PMX / VMD preset，比例 1。
+等待 Textures ready 后再保存、复制物件或切换坐标。
+
+MMDD 3 playback: Load VMD Advanced → item → AssetImport PMX Auto.
+If missing, select the item → Left Alt + I → Repair selected PMX Auto,
+then reopen the MMDD definition selector and bind the regenerated mapping.
+MMDD 动作：使用 Load VMD Advanced 选择物件及 AssetImport PMX Auto。
+缺少映射时，选中物件，在插件面板点击 Repair selected PMX Auto，再重开 MMDD 选择页。
+
+Convert diffuse to KK color is optional. Configure Textures / KK Color LUT
+with a PS-to-KK .cube file before importing. The LUT is supplied separately.
+贴图转色默认关闭；使用前配置 Textures / KK Color LUT，选择 PS 转 KK 的 .cube 文件。
+
+Documentation / 文档：https://github.com/PoeraWork/AssetImport
+Report the build from BUILD.txt and relevant BepInEx/LogOutput.log or output_log.txt.
+报错请附 BUILD.txt 中的构建标识及相关游戏日志。

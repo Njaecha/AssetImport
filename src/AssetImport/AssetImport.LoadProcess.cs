@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Studio;
 
 namespace AssetImport
@@ -13,6 +13,7 @@ namespace AssetImport
         public Import Import { get; }
         public Vector3 Scale { get; }
         public LoadProcessKind Kind { get; }
+        internal CubeLut ColorLut { get; }
 
         public LoadProcess(GameObject baseGameObject, OCIItem ociitem, Import import, Vector3 scale, LoadProcessKind kind)
         {
@@ -21,6 +22,9 @@ namespace AssetImport
             this.Import = import;
             this.Scale = scale;
             this.Kind = kind;
+            ColorLut = kind == LoadProcessKind.Normal ? AssetUI.ImportColorLut : null;
+            if (kind == LoadProcessKind.Normal)
+                import.PrepareNewPmxPhysics(AssetUI.AutoSelectPmxPhysics, AssetUI.EnablePhysicsAfterImport, AssetUI.UsePmxPhysicsPreset, AssetUI.PmxHairCollisionAssist, AssetUI.NewPhysicsEnvironment);
         }
         public LoadProcess(GameObject baseGameObject, AccessoryHelper accessory, Import import, Vector3 scale, LoadProcessKind kind)
         {
@@ -29,6 +33,9 @@ namespace AssetImport
             this.Import = import;
             this.Scale = scale;
             this.Kind = kind;
+            ColorLut = kind == LoadProcessKind.Normal ? AssetUI.ImportColorLut : null;
+            if (kind == LoadProcessKind.Normal)
+                import.PrepareNewPmxPhysics(AssetUI.AutoSelectPmxPhysics, AssetUI.EnablePhysicsAfterImport, AssetUI.UsePmxPhysicsPreset, AssetUI.PmxHairCollisionAssist, AssetUI.NewPhysicsEnvironment);
         }
 
         public enum LoadProcessKind

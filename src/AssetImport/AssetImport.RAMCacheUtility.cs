@@ -6,7 +6,6 @@ using LitJson;
 using Main = AssetImport.AssetImport;
 using System.Text;
 using System.Linq;
-using BepInEx.Logging;
 
 
 namespace AssetImport
@@ -16,15 +15,30 @@ namespace AssetImport
     /// </summary>
     public static class RamCacheUtility
     {
-        // hash -> name, blob, [additional file hashes]
-        private static readonly Dictionary<string, Tuple<string, byte[], List<string>>> BlobStorage = new Dictionary<string, Tuple<string, byte[], List<string>>>();
+        // Cache entries are private runtime state, independent of the serialized card format.
+        // Use a named type instead of System.Tuple, which is unavailable in KK's .NET 3.5 runtime.
+        private sealed class CacheEntry
+        {
+            internal readonly string FileName;
+            internal readonly byte[] Data;
+            internal readonly List<string> AdditionalFileHashes;
+
+            internal CacheEntry(string fileName, byte[] data, List<string> additionalFileHashes)
+            {
+                FileName = fileName;
+                Data = data;
+                AdditionalFileHashes = additionalFileHashes;
+            }
+        }
+
+        private static readonly Dictionary<string, CacheEntry> BlobStorage = new Dictionary<string, CacheEntry>();
 
         public static string ToCache(string sourcePath)
         {
             if (File.Exists(sourcePath))
             {
                 string fileName = Path.GetFileName(sourcePath);
-                KeyValuePair<string, Tuple<string, byte[], List<string>>> kvp = DoHash(sourcePath);
+                KeyValuePair<string, CacheEntry> kvp = DoHash(sourcePath);
                 if (!BlobStorage.ContainsKey(kvp.Key))
                 {
                     // GLTF stores additional files with information
@@ -33,16 +47,16 @@ namespace AssetImport
                         List<string> additionalFileHashes = new List<string>();
 
                         // extra files can only be found from the source file if we are loading the file from disc.
-                        GetGltFbufferPaths(kvp.Value.Item2, sourcePath).ForEach(path =>
+                        GetGltFbufferPaths(kvp.Value.Data, sourcePath).ForEach(path =>
                         {
-                            KeyValuePair<string, Tuple<string, byte[], List<string>>> kvp2 = DoHash(path);
+                            KeyValuePair<string, CacheEntry> kvp2 = DoHash(path);
                             if (!BlobStorage.ContainsKey(kvp2.Key))
                             {
                                 BlobStorage.Add(kvp2.Key, kvp2.Value);
                             }
                             additionalFileHashes.Add(kvp2.Key);
                         });
-                        BlobStorage.Add(kvp.Key, new Tuple<string, byte[], List<string>>(kvp.Value.Item1, kvp.Value.Item2, additionalFileHashes));
+                        BlobStorage.Add(kvp.Key, new CacheEntry(kvp.Value.FileName, kvp.Value.Data, additionalFileHashes));
                     }
                     // OBJ can store a .mtl file with material data
                     else if (fileName.ToLower().EndsWith(".obj"))
@@ -50,12 +64,12 @@ namespace AssetImport
                         string mtlFile = sourcePath.Replace(".obj", ".mtl");
                         if (File.Exists(mtlFile))
                         {
-                            KeyValuePair<string,Tuple<string,byte[],List<string>>> kvp3 = DoHash(mtlFile);
+                            KeyValuePair<string,CacheEntry> kvp3 = DoHash(mtlFile);
                             if (!BlobStorage.ContainsKey(kvp3.Key))
                             {
                                 BlobStorage.Add(kvp3.Key, kvp3.Value);
                             }
-                            BlobStorage.Add(kvp.Key, new Tuple<string, byte[], List<string>>(kvp.Value.Item1, kvp.Value.Item2, new List<string>(){kvp3.Key}));
+                            BlobStorage.Add(kvp.Key, new CacheEntry(kvp.Value.FileName, kvp.Value.Data, new List<string>(){kvp3.Key}));
                         }
                         else BlobStorage.Add(kvp.Key, kvp.Value);
                     }
@@ -64,9 +78,9 @@ namespace AssetImport
                         BlobStorage.Add(kvp.Key, kvp.Value);
                     }
                 }
-                else if (BlobStorage[kvp.Key].Item1 != fileName)
+                else if (BlobStorage[kvp.Key].FileName != fileName)
                 {
-                    Main.Logger.LogWarning($"A file with the exact content as {fileName} has already been cached under the name {BlobStorage[kvp.Key].Item1}. This will be used instead");
+                    Main.Logger.LogWarning($"A file with the exact content as {fileName} has already been cached under the name {BlobStorage[kvp.Key].FileName}. This will be used instead");
                 }
                 return kvp.Key;
             }
@@ -81,32 +95,32 @@ namespace AssetImport
         {
             if (!BlobStorage.ContainsKey(file.Hash))
             {
-                BlobStorage.Add(file.Hash, new Tuple<string, byte[], List<string>>(file.FileName, file.File, file.RelatedFiles));
+                BlobStorage.Add(file.Hash, new CacheEntry(file.FileName, file.File, file.RelatedFiles));
             }
             return file.Hash;
         }
 
         internal static string ToCache(byte[] bytes, string filename, List<string> additionalHashes)
         {
-            KeyValuePair<string, Tuple<string, byte[], List<string>>> kvp = DoHash(bytes, filename);
+            KeyValuePair<string, CacheEntry> kvp = DoHash(bytes, filename);
             if (!BlobStorage.ContainsKey(kvp.Key))
             {
-                BlobStorage.Add(kvp.Key, new Tuple<string, byte[], List<string>>(kvp.Value.Item1, kvp.Value.Item2, additionalHashes));
+                BlobStorage.Add(kvp.Key, new CacheEntry(kvp.Value.FileName, kvp.Value.Data, additionalHashes));
             }
             return kvp.Key;
         }
 
-        private static KeyValuePair<string, Tuple<string, byte[], List<string>>> DoHash(string sourcePath)
+        private static KeyValuePair<string, CacheEntry> DoHash(string sourcePath)
         {
             return DoHash(File.ReadAllBytes(sourcePath), Path.GetFileName(sourcePath));
         }
 
-        private static KeyValuePair<string, Tuple<string, byte[], List<string>>> DoHash(byte[] blob, string fileName)
+        private static KeyValuePair<string, CacheEntry> DoHash(byte[] blob, string fileName)
         {
             using (MD5 md5 = MD5.Create())
             {
                 string hashString = BitConverter.ToString(md5.ComputeHash(blob)).Replace("-", "");
-                return new KeyValuePair<string, Tuple<string, byte[], List<string>>>(hashString, new Tuple<string, byte[], List<string>>(Path.GetFileName(fileName), blob, null));
+                return new KeyValuePair<string, CacheEntry>(hashString, new CacheEntry(Path.GetFileName(fileName), blob, null));
             }
         }
 
@@ -131,9 +145,9 @@ namespace AssetImport
         /// <returns></returns>
         public static byte[] GetFileBlob(string hash)
         {
-            if (BlobStorage.TryGetValue(hash, out Tuple<string, byte[], List<string>> file))
+            if (BlobStorage.TryGetValue(hash, out CacheEntry file))
             {
-                return file.Item2;
+                return file.Data;
             }
             else
             {
@@ -149,9 +163,9 @@ namespace AssetImport
         /// <returns></returns>
         public static MemoryStream GetFileStream(string hash)
         {
-            if (BlobStorage.TryGetValue(hash, out Tuple<string, byte[], List<string>> file))
+            if (BlobStorage.TryGetValue(hash, out CacheEntry file))
             {
-                return new MemoryStream(file.Item2);
+                return new MemoryStream(file.Data);
             }
             else
             {
@@ -167,9 +181,9 @@ namespace AssetImport
         /// <returns></returns>
         public static string GetFileName(string hash)
         {
-            if (BlobStorage.TryGetValue(hash, out Tuple<string, byte[], List<string>> file))
+            if (BlobStorage.TryGetValue(hash, out CacheEntry file))
             {
-                return file.Item1;
+                return file.FileName;
             }
             else
             {
@@ -185,9 +199,9 @@ namespace AssetImport
         /// <returns></returns>
         public static List<string> GetFileAdditionalFileHashes(string hash)
         {
-            if(BlobStorage.TryGetValue(hash, out Tuple<string, byte[], List<string>> file))
+            if(BlobStorage.TryGetValue(hash, out CacheEntry file))
             {
-                return file.Item3;
+                return file.AdditionalFileHashes;
             }
             else
             {

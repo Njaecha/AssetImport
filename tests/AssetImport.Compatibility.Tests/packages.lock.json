@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "IllusionLibs.BepInEx": {
+        "type": "Direct",
+        "requested": "[5.4.22, )",
+        "resolved": "5.4.22",
+        "contentHash": "2vIeFExyRZnUBTCoIOM4X0fPFHfa66TsN9XSe+ZV557AA8qu9M23SUnzfZUWhLghK9gJt0SXA744n9BnCV2u3Q==",
+        "dependencies": {
+          "IllusionLibs.BepInEx.Harmony": "[2.9.0]"
+        }
+      },
+      "IllusionLibs.BepInEx.Harmony": {
+        "type": "Direct",
+        "requested": "[2.9.0, )",
+        "resolved": "2.9.0",
+        "contentHash": "z06STa3b51Aa+Y0WO7vjuthKc7vo6+wjs5zVnu7yPGlKDqkHxLZ1i7RAz5tI9hPOYfiqtjwFe9XWB84kstQitQ=="
+      },
+      "IllusionLibs.KoikatsuSunshine.Assembly-CSharp": {
+        "type": "Direct",
+        "requested": "[2021.9.17, )",
+        "resolved": "2021.9.17",
+        "contentHash": "tzUoN+wMYeus3O1S9zy8AtXb1ohd/twp54PoxsrSouheBhjYI6TbIkcKNuaRSkQOikZtuNkBwDuxxAHu/h5oEQ==",
+        "dependencies": {
+          "IllusionLibs.BepInEx": "5.4.8",
+          "IllusionLibs.BepInEx.Harmony": "2.3.2",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.CoreModule": "2019.4.9"
+        }
+      },
+      "IllusionLibs.Koikatu.Assembly-CSharp": {
+        "type": "Direct",
+        "requested": "[2019.4.27.4, )",
+        "resolved": "2019.4.27.4",
+        "contentHash": "wP/1oTbh4GAKucrQlbPZRKKoLHREvTanp3uLHMqbQEFREj55L97LLEtb5Ij2RAHNLJlnVGG4T40UJGMkfmqObQ=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.CoreModule": {
+        "type": "Transitive",
+        "resolved": "2019.4.9",
+        "contentHash": "PR01xxXDAN9lfst8rzMAOo2QXxbZWiSnEPz3WREsC3P3iK7fQaGyStDj7i8+UXUSEw1mpL0KKpfzGDI9KssW1g=="
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+<Project>
+  <!-- Inspect game APIs as metadata only; never load game assemblies into the test runtime. -->
+  <ItemGroup>
+    <PackageReference Include="IllusionLibs.BepInEx" Version="5.4.22" ExcludeAssets="all" PrivateAssets="all" NoWarn="NU1701" />
+    <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp" Version="2019.4.27.4" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp" Version="2021.9.17" GeneratePathProperty="true" ExcludeAssets="all" PrivateAssets="all" />
+    <None Include="$(PkgIllusionLibs_Koikatu_Assembly-CSharp)/lib/net35/Assembly-CSharp.dll" Link="Fixtures/KK/Assembly-CSharp.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PkgIllusionLibs_KoikatsuSunshine_Assembly-CSharp)/lib/net46/Assembly-CSharp.dll" Link="Fixtures/KKS/Assembly-CSharp.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

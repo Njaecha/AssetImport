@@ -42,7 +42,9 @@ namespace AssetImport
         public void SetDynamic(bool active, bool subBone = false, BoneNode root = null)
         {
             if (Parent != null && Parent.IsDynamic && !subBone) return;
-            if (Children.Count > 0 && Children[0].DynamicBoneInChildren()) return;
+            // DynamicBone simulates every descendant, not only the first child.
+            // Reject a parent root if any branch already has its own dynamic root.
+            if (active && !subBone && Children.Exists(child => child.DynamicBoneInChildren())) return;
             if (!subBone)
             {
                 IsDynamicRoot = active;
@@ -52,10 +54,7 @@ namespace AssetImport
             else if (root != null) root.DynamicChainLength++;
 
             IsDynamic = active;
-            if (Children.Count > 0)
-            {
-                Children[0].SetDynamic(active, true, root);
-            }
+            foreach (BoneNode child in Children) child.SetDynamic(active, true, root);
         }
 
         public void SetUiActive(bool active)
@@ -82,7 +81,7 @@ namespace AssetImport
         public bool DynamicBoneInChildren()
         {
             if (IsDynamicRoot) return true;
-            return Children.Count > 0 && Children[0].DynamicBoneInChildren();
+            return Children.Exists(child => child.DynamicBoneInChildren());
         }
 
         public class DynamicRootProperties

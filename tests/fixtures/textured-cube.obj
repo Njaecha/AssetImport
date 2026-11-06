@@ -1,0 +1,30 @@
+# AssetImport test fixture: one-unit cube, 6 quads, shared UV layout.
+# Keep textured-cube.mtl and fixture.png beside this file.
+mtllib textured-cube.mtl
+o TexturedCube
+v -0.5 -0.5 -0.5
+v 0.5 -0.5 -0.5
+v 0.5 0.5 -0.5
+v -0.5 0.5 -0.5
+v -0.5 -0.5 0.5
+v 0.5 -0.5 0.5
+v 0.5 0.5 0.5
+v -0.5 0.5 0.5
+vt 0 0
+vt 1 0
+vt 1 1
+vt 0 1
+vn 0 0 -1
+vn 0 0 1
+vn -1 0 0
+vn 1 0 0
+vn 0 -1 0
+vn 0 1 0
+usemtl FixtureColor
+s off
+f 4/1/1 3/2/1 2/3/1 1/4/1
+f 5/1/2 6/2/2 7/3/2 8/4/2
+f 1/1/3 5/2/3 8/3/3 4/4/3
+f 6/1/4 2/2/4 3/3/4 7/4/4
+f 1/1/5 2/2/5 6/3/5 5/4/5
+f 8/1/6 7/2/6 3/3/6 4/4/6

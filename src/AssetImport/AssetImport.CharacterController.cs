@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -7,6 +7,7 @@ using IllusionUtility.GetUtility;
 using BepInEx.Logging;
 using KKAPI;
 using KKAPI.Chara;
+using KKAPI.Maker;
 using ExtensibleSaveFormat;
 using MessagePack;
 using System.IO;
@@ -16,6 +17,8 @@ using System.Text.RegularExpressions;
 using BepInEx.Bootstrap;
 using KKABMX.Core;
 using HSPE;
+using HarmonyLib;
+using System.Runtime.CompilerServices;
 
 namespace AssetImport
 {
@@ -33,6 +36,104 @@ namespace AssetImport
         internal string CharacterCardName { get => ChaControl.chaFile.charaFileName.IsNullOrEmpty() ? "MakerDefault" : ChaControl.chaFile.charaFileName; }
 
         private bool _hasBeenLoadedAlready;
+
+        private AssetAccessoryPhysics GetAccessoryPhysics(int coordinate, int slot, out Asset asset)
+        {
+            asset = null;
+            if (coordinate != ChaControl.fileStatus.coordinateType ||
+                !loadedObjects.TryGetValue(coordinate, out var assets) ||
+                !assets.TryGetValue(slot, out asset)) return null;
+            var accessory = ChaControl.GetAccessoryComponent(slot);
+            if (!accessory) return null;
+            var physics = accessory.gameObject.GetComponent<AssetAccessoryPhysics>();
+            return physics && physics.SourceIdentifier == asset.SourceFile ? physics : null;
+        }
+
+        private void CaptureAccessoryPhysics(int coordinate, int slot)
+        {
+            var physics = GetAccessoryPhysics(coordinate, slot, out var asset);
+            if (physics) physics.CaptureState(asset);
+        }
+
+        private void CaptureCurrentAccessoryPhysics()
+        {
+            int coordinate = ChaControl.fileStatus.coordinateType;
+            if (!loadedObjects.TryGetValue(coordinate, out var assets)) return;
+            foreach (int slot in assets.Keys) CaptureAccessoryPhysics(coordinate, slot);
+        }
+
+        private void RestoreAccessoryPhysics(int coordinate, int slot)
+        {
+            var physics = GetAccessoryPhysics(coordinate, slot, out var asset);
+            if (physics)
+            {
+                AssetPhysicsEnvironment.Attach(physics.gameObject, physics.ImportedRoot, physics.Chains, PhysicsEnvironmentPersistence.Read(asset));
+                physics.SetEnabled(AssetAccessoryPhysics.RestoreEnabled(asset));
+            }
+        }
+
+        internal AssetPhysicsEnvironment GetSelectedPhysicsEnvironment(out Asset asset)
+        {
+            var physics = GetSelectedAccessoryPhysics(out asset);
+            return physics ? physics.GetComponent<AssetPhysicsEnvironment>() : null;
+        }
+
+        private IEnumerator ApplyEditorDataAndRestorePhysics(IEnumerator applyData, int coordinate)
+        {
+            // Await the optional editor's own restore rather than forcing the
+            // global switch every frame or guessing how many frames it needs.
+            yield return applyData;
+            if (coordinate != ChaControl.fileStatus.coordinateType ||
+                !loadedObjects.TryGetValue(coordinate, out var assets)) yield break;
+            foreach (int slot in assets.Keys)
+            {
+                if (!AssetAccessoryPhysics.RestoreEnabled(assets[slot])) RestoreAccessoryPhysics(coordinate, slot);
+                else
+                {
+                    var physics = GetAccessoryPhysics(coordinate, slot, out var asset);
+                    var environment = physics ? physics.GetComponent<AssetPhysicsEnvironment>() : null;
+                    if (environment && environment.Settings.Settle) environment.RequestSettle();
+                }
+            }
+        }
+
+        private AssetAccessoryPhysics GetSelectedAccessoryPhysics(out Asset asset)
+        {
+            asset = null;
+            if (!MakerAPI.InsideMaker || MakerAPI.GetCharacterControl() != ChaControl ||
+                AccessoriesApi.SelectedMakerAccSlot < 0) return null;
+            return GetAccessoryPhysics(ChaControl.fileStatus.coordinateType, AccessoriesApi.SelectedMakerAccSlot, out asset);
+        }
+
+        internal LocalizedText GetSelectedAccessoryPhysicsStatus()
+        {
+            var physics = GetSelectedAccessoryPhysics(out var asset);
+            if (!physics) return L.Message("Select an accessory imported by AssetImport to control its physics.");
+            var chains = physics.GetOwnedChains();
+            if (chains.Count == 0) return L.Message("Selected accessory has no physics chains. Select roots when importing.");
+            int enabled = 0;
+            foreach (var chain in chains) if (chain.enabled) enabled++;
+            return L.Message("Accessory physics: {0}/{1} chains ON.", enabled, chains.Count);
+        }
+
+        internal LocalizedText SetSelectedAccessoryPhysicsEnabled(bool enabled)
+        {
+            var physics = GetSelectedAccessoryPhysics(out var asset);
+            if (!physics) return L.Message("Select an accessory imported by AssetImport first.");
+            int count = physics.SetEnabled(enabled);
+            if (count == 0) return L.Message("No physics chains exist. Select roots when importing the accessory.");
+            asset.PhysicsEnabled = enabled;
+            return L.Message("Accessory physics {0}: {1} chains; roots and colliders retained.", L.Message(enabled ? "ON" : "OFF"), count);
+        }
+
+        internal LocalizedText ResetSelectedAccessoryPhysics()
+        {
+            var physics = GetSelectedAccessoryPhysics(out var asset);
+            if (!physics) return L.Message("Select an accessory imported by AssetImport first.");
+            var result = PhysicsReset.Reset(physics.GetOwnedChains());
+            foreach (string message in result.FailureMessages) Logger.LogWarning("Cannot reset accessory physics: " + message);
+            return L.Message("Physics reset: {0} chain(s); {1} inactive, {2} invalid, {3} failed. Settings retained.", result.ResetCount, result.InactiveCount, result.InvalidCount, result.FailedCount);
+        }
 
         // used to transfer plugin data from Coordinate Load Options temp character to the real characters.
         private static PluginData cloTransferPluginData;
@@ -94,9 +195,10 @@ namespace AssetImport
         {
             int cSet = ChaControl.fileStatus.coordinateType;
             if (!loadedObjects.ContainsKey(cSet)) return;
-            Logger.LogDebug("Accessory Transfer Event");
+            if (AssetDebug.Enabled) Logger.LogInfo("Accessory Transfer Event");
             if (loadedObjects[cSet].ContainsKey(source))
             {
+                CaptureAccessoryPhysics(cSet, source);
                 Asset asset = new Asset
                 {
                     SourceFile = loadedObjects[cSet][source].SourceFile,
@@ -104,10 +206,15 @@ namespace AssetImport
                     Identifier = destination,
                     Scale = loadedObjects[cSet][source].Scale,
                     HasBones = loadedObjects[cSet][source].HasBones,
-                    PerRendererMaterials = loadedObjects[cSet][source].PerRendererMaterials
+                    PerRendererMaterials = loadedObjects[cSet][source].PerRendererMaterials,
+                    PhysicsEnabled = loadedObjects[cSet][source].PhysicsEnabled,
+                    PhysicsProfile = loadedObjects[cSet][source].PhysicsProfile,
+                    PmxHairCollisionAssist = loadedObjects[cSet][source].PmxHairCollisionAssist
                 };
+                PhysicsEnvironmentPersistence.Write(asset, PhysicsEnvironmentPersistence.Read(loadedObjects[cSet][source]));
                 loadedObjects[cSet][destination] = asset;
-                Logger.LogDebug($"Source slot {source} --> Destination slot {destination}");
+                RestoreAccessoryPhysics(cSet, destination);
+                if (AssetDebug.Enabled) Logger.LogInfo($"Source slot {source} --> Destination slot {destination}");
             }
             else if (loadedObjects[cSet].ContainsKey(destination))
             {
@@ -137,6 +244,7 @@ namespace AssetImport
             {
                 if (loadedObjects[source].ContainsKey(slot))
                 {
+                    CaptureAccessoryPhysics(source, slot);
                     Asset asset = new Asset();
                     asset.SourceFile = loadedObjects[source][slot].SourceFile;
                     asset.DynamicBoneIndices = loadedObjects[source][slot].DynamicBoneIndices;
@@ -144,8 +252,13 @@ namespace AssetImport
                     asset.Scale = loadedObjects[source][slot].Scale;
                     asset.HasBones = loadedObjects[source][slot].HasBones;
                     asset.PerRendererMaterials = loadedObjects[source][slot].PerRendererMaterials;
+                    asset.PhysicsEnabled = loadedObjects[source][slot].PhysicsEnabled;
+                    asset.PhysicsProfile = loadedObjects[source][slot].PhysicsProfile;
+                    asset.PmxHairCollisionAssist = loadedObjects[source][slot].PmxHairCollisionAssist;
+                    PhysicsEnvironmentPersistence.Write(asset, PhysicsEnvironmentPersistence.Read(loadedObjects[source][slot]));
                     loadedObjects[destination][slot] = asset;
-                    Logger.LogDebug($"Source: Type {source}, Slot {slot} --> Destination: Type {destination}");
+                    RestoreAccessoryPhysics(destination, slot);
+                    if (AssetDebug.Enabled) Logger.LogInfo($"Source: Type {source}, Slot {slot} --> Destination: Type {destination}");
                 }
                 else if (loadedObjects[destination].ContainsKey(slot))
                 {
@@ -156,6 +269,7 @@ namespace AssetImport
 
         protected override void OnCardBeingSaved(GameMode currentGameMode)
         {
+            CaptureCurrentAccessoryPhysics();
             PluginData data = new PluginData();
 
             var sourceFiles = new List<AssetFile>();
@@ -201,21 +315,17 @@ namespace AssetImport
             data.data.Add("Version", (byte)3);
 
             SetExtendedData(data);
-            Logger.LogDebug("Set Extended data");
+            if (AssetDebug.Enabled) Logger.LogInfo("Set Extended data");
         }
 
         internal void LoadCharacter(GameMode currentGameMode, bool MaintainState)
         {
-            Logger.LogDebug($"Character Load Started {ChaControl.fileParam.fullname}");
+            if (MaintainState || (currentGameMode == GameMode.Maker && MakerAPI.GetCharacterLoadFlags()?.Clothes == false)) return;
+            if (AssetDebug.Enabled) Logger.LogInfo($"Character Load Started {ChaControl.fileParam.fullname}");
             loadedObjects.Clear();
             if (currentGameMode == GameMode.Maker)
             {
                 RamCacheUtility.ClearCache();
-                GameObject toggleObject = GameObject.Find("CustomScene/CustomRoot/FrontUIGroup/CustomUIGroup/CvsMenuTree/06_SystemTop/charaFileControl/charaFileWindow/WinRect/CharaLoad/Select/tglItem05");
-                if (toggleObject && toggleObject.GetComponent<Toggle>())
-                {
-                    if (!toggleObject.GetComponent<Toggle>().isOn) return;
-                }
             }
             PluginData data = GetExtendedData();
             if (data == null) return;
@@ -243,10 +353,10 @@ namespace AssetImport
                             }
                             else
                             {
-                                Logger.LogDebug($"No sourceFiles found in extended data for clothing slot {cSet}");
+                                if (AssetDebug.Enabled) Logger.LogInfo($"No sourceFiles found in extended data for clothing slot {cSet}");
                                 continue;
                             }
-                            Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                            if (AssetDebug.Enabled) Logger.LogInfo($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
                             foreach (AssetSource sourceFile in sourceFiles)
                             {
                                 try
@@ -283,10 +393,10 @@ namespace AssetImport
                             }
                             else
                             {
-                                Logger.LogDebug("No sourceFiles found in extended data.");
+                                if (AssetDebug.Enabled) Logger.LogInfo("No sourceFiles found in extended data.");
                                 return;
                             }
-                            Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                            if (AssetDebug.Enabled) Logger.LogInfo($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
                             foreach (AssetFile sourceFile in sourceFiles)
                             {
                                 try
@@ -329,7 +439,7 @@ namespace AssetImport
                     }
                     else
                     {
-                        Logger.LogDebug($"No assets found in extended data for clothing slot {cSet}");
+                        if (AssetDebug.Enabled) Logger.LogInfo($"No assets found in extended data for clothing slot {cSet}");
                         continue;
                     }
                     foreach (Asset asset in assets)
@@ -344,6 +454,7 @@ namespace AssetImport
 
         protected override void OnCoordinateBeingSaved(ChaFileCoordinate coordinate)
         {
+            CaptureCurrentAccessoryPhysics();
             PluginData data = new PluginData();
 
             var assets = new List<Asset>();
@@ -383,21 +494,24 @@ namespace AssetImport
             data.data.Add("Assets", MessagePackSerializer.Serialize(assets));
 
             SetCoordinateExtendedData(coordinate, data);
-            Logger.LogDebug("Set Coordinate Extended data");
+            if (AssetDebug.Enabled) Logger.LogInfo("Set Coordinate Extended data");
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void LoadCoordinateCompatibilityDynamicBoneEditor(int cSet)
         {
-            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)_dBoneBackup)
+            if (!(_dBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)) return;
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in backup)
             {
                 if (dboneData.CoordinateIndex != cSet) continue;
                 KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                if (!dBoneController || dBoneController.AccessoryDynamicBoneData.Any(entry =>
+                var data = GetDynamicBoneEditorData(dBoneController);
+                if (data == null || data.Any(entry =>
                         entry.CoordinateIndex.Equals(dboneData.CoordinateIndex)
                         && entry.Slot.Equals(dboneData.Slot)
                         && entry.BoneName.Equals(dboneData.BoneName))) continue;
-                Logger.LogDebug($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
-                dBoneController.AccessoryDynamicBoneData.Add(dboneData);
+                if (AssetDebug.Enabled) Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for slot {dboneData.Slot}: {dboneData.BoneName}");
+                data.Add(dboneData);
             }
         }
 
@@ -409,23 +523,28 @@ namespace AssetImport
             // check if Coordinate Load Option is installed
             var cMode = false;
             var cloImportAccessories = new List<int>(); // slots that are loaded new
-            if (Chainloader.PluginInfos.ContainsKey("com.jim60105.kks.coordinateloadoption"))
+#if KK
+            const string coordinateLoadOptionGuid = "com.jim60105.kk.coordinateloadoption";
+#else
+            const string coordinateLoadOptionGuid = "com.jim60105.kks.coordinateloadoption";
+#endif
+            if (Chainloader.PluginInfos.ContainsKey(coordinateLoadOptionGuid))
             {
-                Logger.LogDebug("Coordinate Load Option deducted");
+                if (AssetDebug.Enabled) Logger.LogInfo("Coordinate Load Option deducted");
                 if (GameObject.Find("CoordinateTooglePanel")?.activeInHierarchy == true)
                 {
-                    Logger.LogDebug("Coordinate Load Option enabled");
+                    if (AssetDebug.Enabled) Logger.LogInfo("Coordinate Load Option enabled");
                     bool? accEnabled = GameObject.Find("CoordinateTooglePanel/accessories")?.GetComponent<Toggle>()?.isOn;
                     switch (accEnabled)
                     {
                         case true:
                         {
-                            Logger.LogDebug("Coordinate Load Option accessory load enabled, entering compatibility mode");
+                            if (AssetDebug.Enabled) Logger.LogInfo("Coordinate Load Option accessory load enabled, entering compatibility mode");
                             cMode = true;
 
                             if (GameObject.Find("CoordinateTooglePanel/AccessoriesTooglePanel/BtnChangeAccLoadMode")?.GetComponentInChildren<Text>()?.text != "Replace Mode")
                             {
-                                Logger.LogMessage("Asset Import WARNING: Add Mode is not supported! Stopping asset load");
+                                Logger.LogMessage(L.Text("Asset Import WARNING: Add Mode is not supported! Stopping asset load"));
                                 return;
                             }
 
@@ -446,8 +565,10 @@ namespace AssetImport
                         }
                         case false:
                         {
-                            Logger.LogDebug("Coordinate Load Option accessory load disabled -> stopping asset load.");
-                            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) LoadCoordinateCompatibilityDynamicBoneEditor(cSet);
+                            if (AssetDebug.Enabled) Logger.LogInfo("Coordinate Load Option accessory load disabled -> stopping asset load.");
+                            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor") &&
+                                Hooks.IsOptionalIntegrationAvailable(Hooks.DynamicBoneEditorAssembly))
+                                Hooks.RunOptionalIntegration(Hooks.DynamicBoneEditorAssembly, "dynamic bone data restore", () => LoadCoordinateCompatibilityDynamicBoneEditor(cSet));
                             return;
                         }
                     }
@@ -458,12 +579,13 @@ namespace AssetImport
             if (KKAPI.Maker.MakerAPI.InsideAndLoaded)
             {
                 // return if no new accessories are being loaded
-                if (GameObject.Find("cosFileControl")?.GetComponentInChildren<ChaCustom.CustomFileWindow>()?.tglCoordeLoadAcs.isOn == false) return;
+                if (MakerAPI.GetCoordinateLoadFlags()?.Accessories == false) return;
             }
 
-            CoordinateCardNames[cSet] = coordinate.coordinateFileName.Replace(".png", "");
+            if (coordinate == null) return;
+            CoordinateCardNames[cSet] = (coordinate.coordinateFileName ?? "").Replace(".png", "");
 
-            Logger.LogDebug($"Coordinate Load Started {cSet} on {ChaControl.fileParam.fullname}");
+            if (AssetDebug.Enabled) Logger.LogInfo($"Coordinate Load Started {cSet} on {ChaControl.fileParam.fullname}");
             if (loadedObjects.ContainsKey(cSet) && !cMode)
             {
                 loadedObjects.Remove(cSet);
@@ -518,10 +640,10 @@ namespace AssetImport
                         }
                         else
                         {
-                            AssetImport.Logger.LogDebug("No sourceFiles found in extended data.");
+                            if (AssetDebug.Enabled) AssetImport.Logger.LogInfo("No sourceFiles found in extended data.");
                             return;
                         }
-                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        if (AssetDebug.Enabled) Logger.LogInfo($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
                         foreach (AssetSource sourceFile in sourceFiles)
                         {
                             try
@@ -559,10 +681,10 @@ namespace AssetImport
                         }
                         else
                         {
-                            Logger.LogDebug("No sourceFiles found in extended data.");
+                            if (AssetDebug.Enabled) Logger.LogInfo("No sourceFiles found in extended data.");
                             return;
                         }
-                        Logger.LogDebug($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
+                        if (AssetDebug.Enabled) Logger.LogInfo($"{sourceFiles.Count} sourceFiles found, extracting to cache...");
                         foreach (AssetFile sourceFile in sourceFiles)
                         {
                             try
@@ -605,7 +727,7 @@ namespace AssetImport
                 }
                 else
                 {
-                    Logger.LogDebug("No assets found in extended data, aborting load...");
+                    if (AssetDebug.Enabled) Logger.LogInfo("No assets found in extended data, aborting load...");
                     return;
                 }
 
@@ -616,31 +738,35 @@ namespace AssetImport
                     // ignore Asset Data of accessories that are not being loaded
                     if (cMode && !cloImportAccessories.Contains(asset.Identifier))
                     {
-                        Logger.LogDebug($"Compatibilty Mode: Accessory in slot {asset.Identifier} is not being loaded -> discarding data.");
+                        if (AssetDebug.Enabled) Logger.LogInfo($"Compatibilty Mode: Accessory in slot {asset.Identifier} is not being loaded -> discarding data.");
                         continue;
                     }
 
                     loadedObjects[cSet][asset.Identifier] = asset;
-                    Logger.LogDebug($"Loading dat of asset for accessory in slot {asset.Identifier}");
+                    if (AssetDebug.Enabled) Logger.LogInfo($"Loading dat of asset for accessory in slot {asset.Identifier}");
                 }
             }
 
             // dynamic bone editor 
             if (cMode && Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor"))
             {
-                CoordinateLoadOptionDynamicBoneEditor(cSet, cloImportAccessories);
+                if (Hooks.IsOptionalIntegrationAvailable(Hooks.DynamicBoneEditorAssembly))
+                    Hooks.RunOptionalIntegration(Hooks.DynamicBoneEditorAssembly, "partial dynamic bone data restore", () => CoordinateLoadOptionDynamicBoneEditor(cSet, cloImportAccessories));
             }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void CoordinateLoadOptionDynamicBoneEditor(int cSet, List<int> cloImportAccessories)
         {
-            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in (List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>)_dBoneBackup)
+            if (!(_dBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)) return;
+            foreach (KK_Plugins.DynamicBoneEditor.DynamicBoneData dboneData in backup)
             {
                 if (dboneData.CoordinateIndex != cSet || cloImportAccessories.Contains(dboneData.Slot)) continue;
                 KK_Plugins.DynamicBoneEditor.CharaController dBoneController = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
-                if (dBoneController == null || dBoneController.AccessoryDynamicBoneData.Contains(dboneData)) continue;
+                var data = GetDynamicBoneEditorData(dBoneController);
+                if (data == null || data.Contains(dboneData)) continue;
                 Logger.LogInfo($"Compatibility Mode: Added back DynamicBoneEditor data for {dboneData.Slot}");
-                dBoneController.AccessoryDynamicBoneData.Add(dboneData);
+                data.Add(dboneData);
             }
         }
 
@@ -649,7 +775,7 @@ namespace AssetImport
         internal void LoadData()
         {
             if (_hasBeenLoadedAlready) return;
-            Logger.LogDebug("Reloading Assets");
+            if (AssetDebug.Enabled) Logger.LogInfo("Reloading Assets");
             int cSet = ChaControl.fileStatus.coordinateType;
             if (!loadedObjects.ContainsKey(cSet)) return;
             foreach(int slot in loadedObjects[cSet].Keys)
@@ -663,7 +789,7 @@ namespace AssetImport
                     continue;
                 }
 
-                if (Main.dumpAssets.Value)
+                if (AssetDebug.Enabled)
                 {
                     File.WriteAllBytes(Path.Combine(GetDumpPath(cSet), RamCacheUtility.GetFileName(asset.SourceFile)), RamCacheUtility.GetFileBlob(asset.SourceFile));
                 }
@@ -673,6 +799,9 @@ namespace AssetImport
                     asset.HasBones,
                     Instantiate(accessory.Accessory.gameObject.GetComponentInChildren<Renderer>().material),
                     asset.PerRendererMaterials);
+                import.PhysicsProfile = asset.PhysicsProfile;
+                import.PmxHairCollisionAssist = asset.PmxHairCollisionAssist;
+                import.PhysicsEnvironment = PhysicsEnvironmentPersistence.Read(asset);
                 import.Load();
                 if (!import.IsLoaded)
                 {
@@ -693,25 +822,64 @@ namespace AssetImport
                 FinishLoadProcess(loadProcess);
             }
 
-            Singleton<HSPE.MainWindow>.Instance?.OnCharaLoad(ChaControl.chaFile); // Force KKSPE update
-            ChaControl.gameObject.GetComponentInChildren<PoseController>()?._dynamicBonesEditor?.RefreshDynamicBoneList(); // Force KKSPE update DynamicBoneList
-            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor")) DynamicBoneEditorBackup();
-
-            BoneController boneController = ChaControl.gameObject.GetComponentInChildren<BoneController>();
-            if (boneController) boneController.NeedsFullRefresh = true;
+            if (Hooks.IsOptionalIntegrationAvailable(Hooks.PoseEditorAssembly))
+                Hooks.RunOptionalIntegration(Hooks.PoseEditorAssembly, "pose editor refresh", RefreshPoseEditor);
+            if (Chainloader.PluginInfos.ContainsKey("com.deathweasel.bepinex.dynamicboneeditor") &&
+                Hooks.IsOptionalIntegrationAvailable(Hooks.DynamicBoneEditorAssembly))
+                Hooks.RunOptionalIntegration(Hooks.DynamicBoneEditorAssembly, "dynamic bone editor backup", DynamicBoneEditorBackup);
+            if (Hooks.IsOptionalIntegrationAvailable(Hooks.BoneEditorAssembly))
+                Hooks.RunOptionalIntegration(Hooks.BoneEditorAssembly, "bone editor refresh", RefreshBoneEditor);
             
             _hasBeenLoadedAlready = true;
             this.StartCoroutine(ResetLoadedAlready());
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void RefreshBoneEditor()
+        {
+            var controller = ChaControl.gameObject.GetComponentInChildren<BoneController>();
+            if (controller) controller.NeedsFullRefresh = true;
+        }
+
+        // These members are non-public in the official KK releases. Reflect at
+        // this optional integration boundary instead of requiring publicized DLLs.
+        private static List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> GetDynamicBoneEditorData(KK_Plugins.DynamicBoneEditor.CharaController controller)
+        {
+            if (!controller) return null;
+            return AccessTools.Field(controller.GetType(), "AccessoryDynamicBoneData")?.GetValue(controller)
+                as List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void RefreshPoseEditor()
+        {
+            try
+            {
+                var window = Singleton<HSPE.MainWindow>.Instance;
+                if (window != null)
+                    AccessTools.Method(window.GetType(), "OnCharaLoad")?.Invoke(window, new object[] { ChaControl.chaFile });
+                var pose = ChaControl.gameObject.GetComponentInChildren<PoseController>();
+                if (pose == null) return;
+                var editor = AccessTools.Field(pose.GetType(), "_dynamicBonesEditor")?.GetValue(pose);
+                if (editor != null)
+                    AccessTools.Method(editor.GetType(), "RefreshDynamicBoneList")?.Invoke(editor, null);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning($"Could not refresh the pose editor after asset import: {ex}");
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
         private void DynamicBoneEditorBackup()
         {
-            if (_dBoneBackup == null) _dBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>();
-            if (!ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>() ||
-                !(_dBoneBackup is List<KK_Plugins.DynamicBoneEditor.DynamicBoneData> backup)) return;
-            ChaControl.StartCoroutine(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>()?.ApplyData());
-            // backup current dynamic bone editor data for potential coordinate load option load
-            backup.AddRange(ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>().AccessoryDynamicBoneData);
+            var controller = ChaControl.gameObject.GetComponentInChildren<KK_Plugins.DynamicBoneEditor.CharaController>();
+            var data = GetDynamicBoneEditorData(controller);
+            if (data == null) return;
+            var applyData = AccessTools.Method(controller.GetType(), "ApplyData")?.Invoke(controller, null) as IEnumerator;
+            if (applyData != null) ChaControl.StartCoroutine(ApplyEditorDataAndRestorePhysics(applyData, ChaControl.fileStatus.coordinateType));
+            // Replace the snapshot rather than retaining data from older outfits.
+            _dBoneBackup = new List<KK_Plugins.DynamicBoneEditor.DynamicBoneData>(data);
         }
 
         private void RenameAccessory(int slot, string newName)
@@ -732,16 +900,16 @@ namespace AssetImport
             
             if (!(File.Exists(path)))
             {
-                Logger.LogMessage($"File {path} does not exist");
+                Logger.LogMessage(L.Format("File {0} does not exist", path));
                 return;
             }
 
-            Logger.LogDebug($"Accessory Import started on slot {slot} with type [{type}] and parentNode [{parent}]");
+            if (AssetDebug.Enabled) Logger.LogInfo($"Accessory Import started on slot {slot} with type [{type}] and parentNode [{parent}]");
 
             ChaAccessoryComponent accessory = ChaControl.GetAccessoryComponent(slot);
             if (!accessory)
             {
-                Logger.LogMessage("Please specify a Type and Parent by choosing a normal accessory first.");
+                Logger.LogMessage(L.Text("Please specify a Type and Parent by choosing a normal accessory first."));
                 return;
             }
 
@@ -752,7 +920,7 @@ namespace AssetImport
 
             string identifierHash = RamCacheUtility.ToCache(path);
 
-            if (Main.dumpAssets.Value)
+            if (AssetDebug.Enabled)
             {
                 File.WriteAllBytes(Path.Combine(GetDumpPath(), Path.GetFileName(path)), RamCacheUtility.GetFileBlob(identifierHash));
             }
@@ -766,6 +934,7 @@ namespace AssetImport
             );
             import.Load();
             if (!import.IsLoaded) return;
+            import.ResolveTextureFiles(path);
 
             AccessoryHelper helper = new AccessoryHelper(ChaControl, accessory, slot);
             Main.currentLoadProcess = new LoadProcess(baseObject, helper, import, scale, LoadProcess.LoadProcessKind.Normal);
@@ -781,6 +950,11 @@ namespace AssetImport
             Import import = loadProcess.Import;
             GameObject loadProcessBase = loadProcess.BaseGameObject;
             if (!(loadProcess.Component is AccessoryHelper accessory)) return;
+            bool enablePhysics = import.PhysicsEnabledAfterImport;
+            if (loadProcess.Kind != LoadProcess.LoadProcessKind.Normal &&
+                loadedObjects.TryGetValue(ChaControl.fileStatus.coordinateType, out var savedAssets) &&
+                savedAssets.TryGetValue(accessory.Slot, out var savedAsset))
+                enablePhysics = AssetAccessoryPhysics.RestoreEnabled(savedAsset);
 
             GameObject n_move = loadProcessBase.transform.FindLoop("N_move");
 
@@ -810,11 +984,12 @@ namespace AssetImport
             importObject.transform.parent = n_move.transform;
             importObject.transform.localPosition = Vector3.zero;
             importObject.transform.localRotation = Quaternion.identity;
-            importObject.transform.localScale = Vector3.one;
+            // DynamicBone must see the final scale when it initializes particles.
+            importObject.transform.localScale = loadProcess.Scale;
 
             // renderers
             accessory.RendNormal = import.Renderers.ToArray();
-            accessory.RendAlpha = Array.Empty<Renderer>();
+            accessory.RendAlpha = new Renderer[0];
 
             // name (experimental, does not yet behave as intended)
             RenameAccessory(accessory.Slot, import.SourceFileName);
@@ -826,10 +1001,18 @@ namespace AssetImport
                 DestroyImmediate(bone);
             }
 
+            // Keep exact ownership references so the manual switch never touches
+            // other accessories, character hair or another plugin's components.
+            var physics = loadProcessBase.GetComponent<AssetAccessoryPhysics>() ?? loadProcessBase.AddComponent<AssetAccessoryPhysics>();
+            physics.SourceIdentifier = import.SourceIdentifier;
+            physics.ImportedRoot = importObject.transform;
+            physics.Chains = new DynamicBone[0];
+            AssetPhysicsEnvironment.Attach(loadProcessBase, importObject.transform, physics.Chains, import.PhysicsEnvironment);
+
             // dynamic bones
             if (import.HasBones)
             {
-                var dBones = 0;
+                var dBones = new List<DynamicBone>();
                 foreach (BoneNode node in import.BoneNodes)
                 {
                     if (!node.IsDynamicRoot) continue;
@@ -838,50 +1021,22 @@ namespace AssetImport
                     dBone.m_Root = node.GameObject.transform;
                     dBone.m_notRolls = new List<Transform>();
                     dBone.m_Colliders = new List<DynamicBoneCollider>();
-                    dBone.enabled = true;
-                    dBones++;
+                    dBones.Add(dBone);
                 }
-                if (dBones > 0)
+                if (dBones.Count > 0)
                 {
-                    Logger.LogDebug($"Activated {dBones} dynamic bone chains on {loadProcess.Import.SourceFileName}");
+                    import.ApplyPmxPhysicsDefaults(dBones);
+                    import.PreparePmxJointPhysics(dBones);
+                    import.ApplyPmxBodyCollisions(dBones, loadProcess.Scale, Main.pmxBodyCollisions.Value, import.PhysicsProfile, import.PmxHairCollisionAssist);
+                    physics.Chains = dBones.ToArray();
+                    AssetPhysicsEnvironment.Attach(loadProcessBase, importObject.transform, physics.Chains, import.PhysicsEnvironment, import.JointPhysicsBindings);
+                    NativeContactController.Attach(loadProcessBase, import.BuildNativeContacts());
+                    physics.SetEnabled(enablePhysics);
+                    if (AssetDebug.Enabled) Logger.LogInfo($"Created {dBones.Count} dynamic bone chains on {loadProcess.Import.SourceFileName}; physics {(enablePhysics ? "ON" : "OFF")}");
                 }
             }
 
-            if (loadProcess.Kind == LoadProcess.LoadProcessKind.Normal)
-            {
-                foreach (Material mat in import.MaterialTextures.Keys)
-                {
-                    foreach (TexturePath p in import.MaterialTextures[mat])
-                    {
-                        if (!p.Use || !p.PathOkay()) continue;
-                        byte[] data = File.ReadAllBytes(p.Path);
-                        var prop = "";
-                        switch (p.Type)
-                        {
-                            case Assimp.TextureType.Diffuse:
-                                prop = "MainTex";
-                                break;
-                            case Assimp.TextureType.Normals:
-                                prop = "NormalMap";
-                                break;
-                            default:
-                                break;
-                        }
-                        Singleton<KK_Plugins.MaterialEditor.MaterialEditorCharaController>.Instance?.SetMaterialTexture(
-                            accessory.Slot,
-                            KK_Plugins.MaterialEditor.MaterialEditorCharaController.ObjectType.Accessory,
-                            p.Material,
-                            prop,
-                            data,
-                            importObject);
-                        Logger.LogDebug($"Set Texture on {p.Material.name} - {prop}");
-                    }
-                }
-            }
-
-            Vector3 s = importObject.transform.localScale;
-            importObject.transform.localScale = new Vector3(s.x * loadProcess.Scale.x, s.y * loadProcess.Scale.y, s.z * loadProcess.Scale.z);
-            importObject.transform.localRotation *= Quaternion.Euler(new Vector3(0, 180, 0));
+            if (!loadProcess.Import.IsPmx) importObject.transform.localRotation *= Quaternion.Euler(new Vector3(0, 180, 0));
 
             if (loadProcess.Kind == LoadProcess.LoadProcessKind.Normal)
             {
@@ -899,6 +1054,10 @@ namespace AssetImport
                 asset.Scale = new float[] { loadProcess.Scale.x, loadProcess.Scale.y, loadProcess.Scale.z };
                 asset.HasBones = loadProcess.Import.HasBones;
                 asset.PerRendererMaterials = loadProcess.Import.PerRendererMaterials;
+                asset.PhysicsEnabled = enablePhysics;
+                asset.PhysicsProfile = import.PhysicsProfile;
+                asset.PmxHairCollisionAssist = import.PmxHairCollisionAssist;
+                PhysicsEnvironmentPersistence.Write(asset, import.PhysicsEnvironment);
 
                 if (!loadedObjects.ContainsKey(ChaControl.fileStatus.coordinateType)) loadedObjects[ChaControl.fileStatus.coordinateType] = new Dictionary<int, Asset>();
                 loadedObjects[ChaControl.fileStatus.coordinateType][asset.Identifier] = asset;
@@ -906,7 +1065,28 @@ namespace AssetImport
 
             ChaControl.ChangeAccessoryColor(accessory.Slot);
 
-            Logger.LogInfo($"Asset [{loadProcess.Import.SourceFileName}] was loaded successfully");
+            if (loadProcess.Kind == LoadProcess.LoadProcessKind.Normal)
+            {
+                int coordinate = ChaControl.fileStatus.coordinateType;
+                Logger.LogInfo("Importing textures in background; wait for completion before saving.");
+                // Keep polling target validity even when this character is destroyed/disabled.
+                Main.instance.StartCoroutine(new ImportTextureData(loadProcess.ColorLut).ApplyAsync(
+                    import.MaterialTextures.Values.SelectMany(paths => paths).ToArray(),
+                    () => this && ChaControl && loadProcessBase && importObject &&
+                        ChaControl.fileStatus.coordinateType == coordinate &&
+                        ChaControl.GetAccessoryComponent(accessory.Slot) == accessory.Accessory,
+                    (path, bytes) =>
+                    {
+                        if (!path.Material) return;
+                        string property = path.Type == Assimp.TextureType.Normals ? "NormalMap" : "MainTex";
+                        ChaControl.gameObject.GetComponent<KK_Plugins.MaterialEditor.MaterialEditorCharaController>()?.SetMaterialTexture(
+                            accessory.Slot, KK_Plugins.MaterialEditor.MaterialEditorCharaController.ObjectType.Accessory,
+                            path.Material, property, bytes, importObject);
+                    },
+                    message => Logger.LogWarning(message),
+                    () => Logger.LogInfo($"Asset [{import.SourceFileName}] loaded; texture processing finished.")));
+            }
+            else Logger.LogInfo($"Asset [{import.SourceFileName}] was loaded successfully");
         }
     }
 }

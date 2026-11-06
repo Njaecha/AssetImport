@@ -1,0 +1,65 @@
+[
+  {
+    "archive": "KK_Plugins_v270.zip",
+    "url": "https://github.com/IllusionMods/KK_Plugins/releases/download/v270/KK_Plugins_2026-06-05.zip",
+    "sha256": "502f59a91dfefe76186e77846ee4e5bbac6a84e4a568f7bf057a8012981afc5d",
+    "files": [
+      {
+        "inner_archive": "KK_MaterialEditor_v4.0.3.zip",
+        "member": "BepInEx/plugins/KK_Plugins/KK_MaterialEditor.dll",
+        "target": "KK_MaterialEditor.dll",
+        "sha256": "51b2189d5a6b985d69afa436f3776b6e51dccfa61f812a20cac7414653f6bad2"
+      }
+    ]
+  },
+  {
+    "archive": "KK_Plugins_v271.zip",
+    "url": "https://github.com/IllusionMods/KK_Plugins/releases/download/v271/KK_Plugins_2026-09-10.zip",
+    "sha256": "8d07cb7cd8bff3d4d2b768a729385a33d9ceb00ef265b28810de3ec31c0fe728",
+    "files": [
+      {
+        "inner_archive": "KK_MaterialEditor_v5.0.zip",
+        "member": "BepInEx/plugins/KK_Plugins/KK_MaterialEditor.dll",
+        "target": "KK_MaterialEditor_5.0.dll",
+        "sha256": "03a848eb008133c911c3bf8093ca766ff000586cd832aa2994ea46370a2c93f3"
+      },
+      {
+        "inner_archive": "KK_DynamicBoneEditor_v1.1.zip",
+        "member": "BepInEx/plugins/KK_Plugins/KK_DynamicBoneEditor.dll",
+        "target": "KK_DynamicBoneEditor.dll",
+        "sha256": "e77f41f90065ef8f46956227a08e7711954f0b41176b300401316ad85640a7ab"
+      }
+    ]
+  },
+  {
+    "archive": "KK_ABMX_v5.4.zip",
+    "url": "https://github.com/ManlyMarco/ABMX/releases/download/v5.4/KK_ABMX_v5.4.zip",
+    "sha256": "e6b76ee60139b86c9c8aa9532992ff6b37ca29a86ef26809bde43c155c30511c",
+    "files": [
+      {
+        "inner_archive": null,
+        "member": "BepInEx/plugins/KKABMX.dll",
+        "target": "KKABMX.dll",
+        "sha256": "f3e2d9877b08b2b25187cbc101478ea0d484bcfe4856244050ba3119578e9f68"
+      }
+    ]
+  },
+  {
+    "archive": "KK_HSPlugins_r2.25.zip",
+    "url": "https://github.com/IllusionMods/HSPlugins/releases/download/r2.25/KK_HSPlugins_2026-07-30.zip",
+    "sha256": "36bfd2f86c65ff2e652dd97a75cc273138f7021c48b722d52f9d006683bb6aa5",
+    "files": [
+      {
+        "inner_archive": "KKPE_v2.21.5.0.zip",
+        "member": "BepInEx/plugins/KKPE.dll",
+        "target": "KKPE.dll",
+        "sha256": "9592db533fd084ddf3ccf15aca8fabfd8cf79e46096d82a8ab5f9c4b1e4c35f4"
+      }
+    ]
+  },
+  {
+    "archive": "BepInEx.Analyzers.1.0.4.nupkg",
+    "url": "https://github.com/BepInEx/BepInEx.Analyzers/releases/download/v1.0.4/BepInEx.Analyzers.1.0.4.nupkg",
+    "sha256": "ba1cc2f6dae7c315c2f496cd541ad37b935f04d580b838f083b0f5c7cc70d0a7"
+  }
+]

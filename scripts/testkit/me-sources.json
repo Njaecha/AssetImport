@@ -1,0 +1,18 @@
+[
+  {
+    "tag": "v270",
+    "version": "4.0.3",
+    "profile": "ME403",
+    "archive": "KK_Plugins-v270-source.zip",
+    "url": "https://codeload.github.com/IllusionMods/KK_Plugins/zip/refs/tags/v270",
+    "sha256": "710abdb5949087823bcbb7690e3016cb480f39fb36d5ac857c8e02ab4fb24086"
+  },
+  {
+    "tag": "v271",
+    "version": "5.0",
+    "profile": "ME500",
+    "archive": "KK_Plugins-v271-source.zip",
+    "url": "https://codeload.github.com/IllusionMods/KK_Plugins/zip/refs/tags/v271",
+    "sha256": "81284628eb9811e709d30aea4cd52132aad500c07d8e4aec7e879ee3c9a5fcdb"
+  }
+]

@@ -1,0 +1,2 @@
+# Wavefront OBJ files are intentional test inputs, not compiled object files.
+!*.obj

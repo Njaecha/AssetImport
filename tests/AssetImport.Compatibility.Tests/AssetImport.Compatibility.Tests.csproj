@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="IllusionLibs.BepInEx" Version="5.4.22" ExcludeAssets="all" NoWarn="NU1701" />
+    <PackageReference Include="IllusionLibs.BepInEx.Harmony" Version="2.9.0" GeneratePathProperty="true" ExcludeAssets="all" />
+    <PackageReference Include="IllusionLibs.Koikatu.Assembly-CSharp" Version="2019.4.27.4" GeneratePathProperty="true" ExcludeAssets="all" />
+    <PackageReference Include="IllusionLibs.KoikatsuSunshine.Assembly-CSharp" Version="2021.9.17" GeneratePathProperty="true" ExcludeAssets="all" />
+    <Reference Include="0Harmony" HintPath="$(PkgIllusionLibs_BepInEx_Harmony)/lib/net35/0Harmony.dll" />
+    <Compile Include="../../src/AssetImport/AssetImport.MaterialEditorLoadDataPatch.cs" Link="MaterialEditorLoadDataPatch.cs" />
+    <None Include="../../src/Custom Dependencies/KK/KK_MaterialEditor.dll" Link="Fixtures/KK/MaterialEditor.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/Custom Dependencies/KK/KK_MaterialEditor_5.0.dll" Link="Fixtures/KK/MaterialEditor_5.0.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/AssetImport/bin/$(Configuration)/net35/KK_AssetImport.dll" Link="Fixtures/KK/AssetImport.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/AssetImport/bin/$(Configuration)/net462/KKS_AssetImport.dll" Link="Fixtures/KKS/AssetImport.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../src/Custom Dependencies/KKS_MaterialEditor.dll" Link="Fixtures/KKS/MaterialEditor.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PkgIllusionLibs_Koikatu_Assembly-CSharp)/lib/net35/Assembly-CSharp.dll" Link="Fixtures/KK/Assembly-CSharp.dll" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PkgIllusionLibs_KoikatsuSunshine_Assembly-CSharp)/lib/net46/Assembly-CSharp.dll" Link="Fixtures/KKS/Assembly-CSharp.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,266 @@
+{
+  "version": 1,
+  "dependencies": {
+    ".NETFramework,Version=v3.5": {
+      "AssimpNet": {
+        "type": "Direct",
+        "requested": "[5.0.0-beta1, )",
+        "resolved": "5.0.0-beta1",
+        "contentHash": "oiUmn2KNaLThdbr6oT461uyCwclsqfZ0UB36vqkAUm8ttBWjKOCBmtp9V+X6xDGZmQaJe9YknW5eoyATTikUNQ=="
+      },
+      "ExtensibleSaveFormat.Koikatu": {
+        "type": "Direct",
+        "requested": "[19.7.0, )",
+        "resolved": "19.7.0",
+        "contentHash": "D7YA2F/VI+7xBJjBVHdd0QyxMyBSK3gjCCqqqcIbf042+2uqWtoHmoiSOgBU8OhvxGC4munDpVBRx2hdpTDArA=="
+      },
+      "IllusionLibs.BepInEx": {
+        "type": "Direct",
+        "requested": "[5.4.22, )",
+        "resolved": "5.4.22",
+        "contentHash": "2vIeFExyRZnUBTCoIOM4X0fPFHfa66TsN9XSe+ZV557AA8qu9M23SUnzfZUWhLghK9gJt0SXA744n9BnCV2u3Q==",
+        "dependencies": {
+          "IllusionLibs.BepInEx.Harmony": "[2.9.0]"
+        }
+      },
+      "IllusionLibs.BepInEx.Harmony": {
+        "type": "Direct",
+        "requested": "[2.9.0, )",
+        "resolved": "2.9.0",
+        "contentHash": "z06STa3b51Aa+Y0WO7vjuthKc7vo6+wjs5zVnu7yPGlKDqkHxLZ1i7RAz5tI9hPOYfiqtjwFe9XWB84kstQitQ=="
+      },
+      "IllusionLibs.Koikatu.Assembly-CSharp": {
+        "type": "Direct",
+        "requested": "[2019.4.27.4, )",
+        "resolved": "2019.4.27.4",
+        "contentHash": "wP/1oTbh4GAKucrQlbPZRKKoLHREvTanp3uLHMqbQEFREj55L97LLEtb5Ij2RAHNLJlnVGG4T40UJGMkfmqObQ=="
+      },
+      "IllusionLibs.Koikatu.Assembly-CSharp-firstpass": {
+        "type": "Direct",
+        "requested": "[2019.4.27.4, )",
+        "resolved": "2019.4.27.4",
+        "contentHash": "1oSPGjnvwVpmBRLHIfgoTPnfQk3GWmJpnLO+yiByedqp7onJ9XGMVUMA0ueK7bA6Q6/K0QhsHQFleu25G3wokw=="
+      },
+      "IllusionLibs.Koikatu.UnityEngine": {
+        "type": "Direct",
+        "requested": "[5.6.2.4, )",
+        "resolved": "5.6.2.4",
+        "contentHash": "QLEOnXpDzUYfvVotDuMLlttde3//IUPIMN4tOv+gcpBUEA6xa5YZH9Qe/nVVS2laT58j5ZmDrKpow3MlG6lokw=="
+      },
+      "IllusionLibs.Koikatu.UnityEngine.UI": {
+        "type": "Direct",
+        "requested": "[5.6.2.4, )",
+        "resolved": "5.6.2.4",
+        "contentHash": "hvtsnz1TVnL1P36dr5spCfsx/aQfLY/WS5sm8dFHw2sA2YkK1So+QUIOvW3YouoFeub9WKooz3vSJk28Ui2PDQ=="
+      },
+      "IllusionModdingAPI.KKAPI": {
+        "type": "Direct",
+        "requested": "[1.45.1, )",
+        "resolved": "1.45.1",
+        "contentHash": "VKDrN+Zewb/rqoJWPH1LKqAS97NeDFSW5bbNeXvifEy9Q7celZec6LjrQCXZB3eDzFK/v1nXjLql01MDemK5nQ==",
+        "dependencies": {
+          "BepInEx.Analyzers": "1.0.4",
+          "ExtensibleSaveFormat.Koikatu": "19.4.0",
+          "IllusionLibs.BepInEx": "5.4.22",
+          "IllusionLibs.Koikatu.Assembly-CSharp": "2019.4.27.4",
+          "IllusionLibs.Koikatu.Assembly-CSharp-firstpass": "2019.4.27.4",
+          "IllusionLibs.Koikatu.TextMeshPro": "2019.4.27.4",
+          "IllusionLibs.Koikatu.UnityEngine": "5.6.2.4",
+          "IllusionLibs.Koikatu.UnityEngine.UI": "5.6.2.4",
+          "KoikatuCompatibilityAnalyzer": "1.1.0",
+          "Microsoft.Unity.Analyzers": "1.25.0"
+        }
+      },
+      "LitJson": {
+        "type": "Direct",
+        "requested": "[0.19.0, )",
+        "resolved": "0.19.0",
+        "contentHash": "7hUCUSkNJBwr+K6uqTOsQSbd5AIDrCMg/ya1BPxrSOlPNoPCyDx+0PyXU61FjbRPl7WU2HavV2r89djdJnlV/g=="
+      },
+      "Microsoft.NETFramework.ReferenceAssemblies": {
+        "type": "Direct",
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "vUc9Npcs14QsyOD01tnv/m8sQUnGTGOw1BCmKcv77LBJY7OxhJ+zJF7UD/sCL3lYNFuqmQEVlkfS4Quif6FyYg==",
+        "dependencies": {
+          "Microsoft.NETFramework.ReferenceAssemblies.net35": "1.0.3"
+        }
+      },
+      "BepInEx.Analyzers": {
+        "type": "Transitive",
+        "resolved": "1.0.4",
+        "contentHash": "7c+vLVV+Yv0zEkZpW8oBb98vyB5liR3KeoEPVvDrIY4QQyWpT9Hva7wURYafvzSWSww+FqRZ7BLnvHpHf9b5KA=="
+      },
+      "IllusionLibs.Koikatu.TextMeshPro": {
+        "type": "Transitive",
+        "resolved": "2019.4.27.4",
+        "contentHash": "PwZtU99TwFIfBZSiTB61TqsyPLex8w05I0d+JInZgTxQaCpFCgCyoIamjFRwh96VRBvlKq3q5R+PNeUCdGfn7w=="
+      },
+      "KoikatuCompatibilityAnalyzer": {
+        "type": "Transitive",
+        "resolved": "1.1.0",
+        "contentHash": "TQLjPsAjr+j/vQXcZyWhHB2Cr7w5ytl+u1rfcMVJHvwIh37IAfh62yeEF+iJDxVfV7z5WbPHBXrnq8Jn43jwow=="
+      },
+      "Microsoft.NETFramework.ReferenceAssemblies.net35": {
+        "type": "Transitive",
+        "resolved": "1.0.3",
+        "contentHash": "Mhbr13IGgsW4AHj50uAiVNMPWdvUPWePRsI4x1NiTkhHUc4rqi9XvY5xxBC4d56bJypQbxAZ8bPuZIpz+TjBVQ=="
+      },
+      "Microsoft.Unity.Analyzers": {
+        "type": "Transitive",
+        "resolved": "1.25.0",
+        "contentHash": "jOclVb2PVoOdKafuzt3bJ3BHkbjsfuAx+60yqP4zCAhlNa1rwn1Jt05qrmqJgmBY42S08hXbps9KA6QR2Z7aOA=="
+      }
+    },
+    ".NETFramework,Version=v4.6.2": {
+      "ExtensibleSaveFormat.KoikatsuSunshine": {
+        "type": "Direct",
+        "requested": "[19.7.0, )",
+        "resolved": "19.7.0",
+        "contentHash": "QCJS7V3e2Ll4ZpYgziHAWFcP6YK0DWwd+1HwHnseSBxwTMTBR+MWH19DBP2E6gYwyK8/PfnN4Dyj5IaTq2LYxA=="
+      },
+      "IllusionLibs.BepInEx": {
+        "type": "Direct",
+        "requested": "[5.4.22, )",
+        "resolved": "5.4.22",
+        "contentHash": "2vIeFExyRZnUBTCoIOM4X0fPFHfa66TsN9XSe+ZV557AA8qu9M23SUnzfZUWhLghK9gJt0SXA744n9BnCV2u3Q==",
+        "dependencies": {
+          "IllusionLibs.BepInEx.Harmony": "[2.9.0]"
+        }
+      },
+      "IllusionLibs.BepInEx.Harmony": {
+        "type": "Direct",
+        "requested": "[2.9.0, )",
+        "resolved": "2.9.0",
+        "contentHash": "z06STa3b51Aa+Y0WO7vjuthKc7vo6+wjs5zVnu7yPGlKDqkHxLZ1i7RAz5tI9hPOYfiqtjwFe9XWB84kstQitQ=="
+      },
+      "IllusionLibs.KoikatsuSunshine.Assembly-CSharp": {
+        "type": "Direct",
+        "requested": "[2021.9.17, )",
+        "resolved": "2021.9.17",
+        "contentHash": "tzUoN+wMYeus3O1S9zy8AtXb1ohd/twp54PoxsrSouheBhjYI6TbIkcKNuaRSkQOikZtuNkBwDuxxAHu/h5oEQ==",
+        "dependencies": {
+          "IllusionLibs.BepInEx": "5.4.8",
+          "IllusionLibs.BepInEx.Harmony": "2.3.2",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.CoreModule": "2019.4.9"
+        }
+      },
+      "IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass": {
+        "type": "Direct",
+        "requested": "[2021.9.17, )",
+        "resolved": "2021.9.17",
+        "contentHash": "CfnLkQsXAaXrGfq2aiyKVE73LCBk423W3BqZBDUGNfS8Ua+5KDgUdz0o6vDsKpHIN788X7Kh5K8QCEcE7LPZ+g=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UniRx": {
+        "type": "Direct",
+        "requested": "[2021.9.17, )",
+        "resolved": "2021.9.17",
+        "contentHash": "2tB0pGOxwCW/J2eCmSvw7j6BdRDAB/yAZEYrUsjGdDSuioc+JafUZ8YMTu8fSA52M81GeCf3wzWkVFtq4UCfUA=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UniTask": {
+        "type": "Direct",
+        "requested": "[2021.9.17, )",
+        "resolved": "2021.9.17",
+        "contentHash": "sCWdwhwa0kHbTgTTaGlG4+nD+6JeIu9H6J/bwKEu6tpuKuothDOh/y2mXHNHdBFhW7kSuw09N7uawr1q5YzU/Q=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.AnimationModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "JLJQsGPevmC9dunMar1/TgdNsQhOFkiQCMBDGU37kh1M4DeoE0JYV0u5QIRDJ3IyJCVHllPtEYOMLPJGYi9Tyg=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.AssetBundleModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "gMGcNZVtYPCKSAKiM626GUptm7ORajfv54zwanksUrEc7KXLofgscpCzYpaZxTHmu9LWrfsZ4yM3ZhpA9CKVQw=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.CoreModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "PR01xxXDAN9lfst8rzMAOo2QXxbZWiSnEPz3WREsC3P3iK7fQaGyStDj7i8+UXUSEw1mpL0KKpfzGDI9KssW1g=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.IMGUIModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "9tVhq1BUdTrnWkR+ZxwXb/CNd09HeQrwQbfb/Wx3BGMWSKT1eOCNwzQDA1ql9PfviFeQ0dyWowxrykig2AEjkA=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.InputLegacyModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "rAeSEsRrus90OI35MsemDlDQ7O5xxpquV17uPXiGY0ROd6zYKFbvnprAsivwPzYv9nX6K1m9utFwe5QnOYMRww=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.TextRenderingModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "EhFM9Fa3n/WBr01Ct6WRX74gX0ZRXUwQ70vz26GlFt8YB+H+/svUl3hHMzcZ2KKn1z/aM6HKIbp36mQRWD8E9g=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.UI": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "jrRdpsqfcTQhZGxt9ZkVdb08RcUiDGTdrkfNiEPZE1LWYxGz4IGhZYNr5dpYzWS2bcZ1wI67x8s3SrNjBI+xdA=="
+      },
+      "IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule": {
+        "type": "Direct",
+        "requested": "[2019.4.9, )",
+        "resolved": "2019.4.9",
+        "contentHash": "7fled4uTUt/0+sOcp7UTro32CmtZiO/IV+BfFr9dl5HLbzuSo/6R4a6Zvrnr1a/NpGc0ylbvOBT44HdKZvrxyQ=="
+      },
+      "IllusionModdingAPI.KKSAPI": {
+        "type": "Direct",
+        "requested": "[1.43.0, )",
+        "resolved": "1.43.0",
+        "contentHash": "nsJXktPcswEV6OnW52bXtixfepOEu5ATKfpOG/zJDBxsvn9TU5fKFQhmTsP5pCiDd2VfbxoRF/abXiQ8YUTyRA==",
+        "dependencies": {
+          "IllusionLibs.BepInEx": "5.4.22",
+          "IllusionLibs.BepInEx.Harmony": "2.9.0",
+          "IllusionLibs.KoikatsuSunshine.Assembly-CSharp": "2021.9.17",
+          "IllusionLibs.KoikatsuSunshine.Assembly-CSharp-firstpass": "2021.9.17",
+          "IllusionLibs.KoikatsuSunshine.UniRx": "2021.9.17",
+          "IllusionLibs.KoikatsuSunshine.UniTask": "2021.9.17",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.IMGUIModule": "2019.4.9",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.InputLegacyModule": "2019.4.9",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.UI": "2019.4.9",
+          "IllusionLibs.KoikatsuSunshine.UnityEngine.UIModule": "2019.4.9",
+          "Microsoft.Unity.Analyzers": "1.18.0"
+        }
+      },
+      "LitJson": {
+        "type": "Direct",
+        "requested": "[0.19.0, )",
+        "resolved": "0.19.0",
+        "contentHash": "7hUCUSkNJBwr+K6uqTOsQSbd5AIDrCMg/ya1BPxrSOlPNoPCyDx+0PyXU61FjbRPl7WU2HavV2r89djdJnlV/g=="
+      },
+      "Microsoft.NETFramework.ReferenceAssemblies": {
+        "type": "Direct",
+        "requested": "[1.0.3, )",
+        "resolved": "1.0.3",
+        "contentHash": "vUc9Npcs14QsyOD01tnv/m8sQUnGTGOw1BCmKcv77LBJY7OxhJ+zJF7UD/sCL3lYNFuqmQEVlkfS4Quif6FyYg==",
+        "dependencies": {
+          "Microsoft.NETFramework.ReferenceAssemblies.net462": "1.0.3"
+        }
+      },
+      "System.Numerics.Vectors": {
+        "type": "Direct",
+        "requested": "[4.5.0, )",
+        "resolved": "4.5.0",
+        "contentHash": "QQTlPTl06J/iiDbJCiepZ4H//BVraReU4O4EoRw1U02H5TLUIT7xn3GnDp9AXPSlJUDyFs4uWjWafNX6WrAojQ=="
+      },
+      "Microsoft.NETFramework.ReferenceAssemblies.net462": {
+        "type": "Transitive",
+        "resolved": "1.0.3",
+        "contentHash": "IzAV30z22ESCeQfxP29oVf4qEo8fBGXLXSU6oacv/9Iqe6PzgHDKCaWfwMBak7bSJQM0F5boXWoZS+kChztRIQ=="
+      },
+      "Microsoft.Unity.Analyzers": {
+        "type": "Transitive",
+        "resolved": "1.18.0",
+        "contentHash": "oQAijSdyfyaO00VD2UR1GGSoG9fZbmsXKe0TqPJHY5eVzF+zPrLWWkrbPU89O7Q2NUNhBhyRvhoUVjUaTCc7Ww=="
+      }
+    }
+  }
+}

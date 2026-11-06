@@ -1,0 +1,443 @@
+{
+  "format": 1,
+  "source": "Official NuGet flatcontainer runtime implementation assemblies; no ref assemblies.",
+  "target_framework": "net462",
+  "packages": [
+    {
+      "id": "System.Memory",
+      "version": "4.6.2",
+      "url": "https://api.nuget.org/v3-flatcontainer/system.memory/4.6.2/system.memory.4.6.2.nupkg",
+      "package_sha256": "2aeed0a13300c2469682d9acd27d5863199666a42ddf5484245db9f964d63dde",
+      "member": "lib/net462/System.Memory.dll",
+      "dll_sha256": "ce1952072d539a4f0abb3706d60ca560c4d380bafeaa3409d277990e89f2312c",
+      "assembly_version": "4.0.4.0",
+      "target": "System.Memory.dll",
+      "framework": "net462",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/dotnet/maintenance-packages",
+        "commit": "6b84308c9ad012f53240d72c1d716d7e42546483"
+      },
+      "dependencies": [
+        {
+          "id": "System.Buffers",
+          "version": "4.6.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "System.Numerics.Vectors",
+          "version": "4.6.1",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "System.Runtime.CompilerServices.Unsafe",
+          "version": "6.1.1",
+          "exclude": "Build,Analyzers"
+        }
+      ],
+      "licenses": [
+        {
+          "path": "licenses/maintenance-LICENSE.TXT",
+          "url": "https://raw.githubusercontent.com/dotnet/maintenance-packages/6b84308c9ad012f53240d72c1d716d7e42546483/LICENSE",
+          "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+        }
+      ]
+    },
+    {
+      "id": "System.Buffers",
+      "version": "4.6.1",
+      "url": "https://api.nuget.org/v3-flatcontainer/system.buffers/4.6.1/system.buffers.4.6.1.nupkg",
+      "package_sha256": "b00451e91d016fbec091ad1e361f3a7015e1d91d4047f7e48a74455b2a673d79",
+      "member": "lib/net462/System.Buffers.dll",
+      "dll_sha256": "2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3",
+      "assembly_version": "4.0.5.0",
+      "target": "System.Buffers.dll",
+      "framework": "net462",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/dotnet/maintenance-packages",
+        "commit": "6b84308c9ad012f53240d72c1d716d7e42546483"
+      },
+      "dependencies": [],
+      "licenses": [
+        {
+          "path": "licenses/maintenance-LICENSE.TXT",
+          "url": "https://raw.githubusercontent.com/dotnet/maintenance-packages/6b84308c9ad012f53240d72c1d716d7e42546483/LICENSE",
+          "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+        }
+      ]
+    },
+    {
+      "id": "System.Numerics.Vectors",
+      "version": "4.6.1",
+      "url": "https://api.nuget.org/v3-flatcontainer/system.numerics.vectors/4.6.1/system.numerics.vectors.4.6.1.nupkg",
+      "package_sha256": "2bc500a86dcb02f2032d6d877f9e2d6e9e4a79080e57239b4198679d4031f2c7",
+      "member": "lib/net462/System.Numerics.Vectors.dll",
+      "dll_sha256": "20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9",
+      "assembly_version": "4.1.6.0",
+      "target": "System.Numerics.Vectors.dll",
+      "framework": "net462",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/dotnet/maintenance-packages",
+        "commit": "6b84308c9ad012f53240d72c1d716d7e42546483"
+      },
+      "dependencies": [],
+      "licenses": [
+        {
+          "path": "licenses/maintenance-LICENSE.TXT",
+          "url": "https://raw.githubusercontent.com/dotnet/maintenance-packages/6b84308c9ad012f53240d72c1d716d7e42546483/LICENSE",
+          "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+        }
+      ]
+    },
+    {
+      "id": "System.Runtime.CompilerServices.Unsafe",
+      "version": "6.1.1",
+      "url": "https://api.nuget.org/v3-flatcontainer/system.runtime.compilerservices.unsafe/6.1.1/system.runtime.compilerservices.unsafe.6.1.1.nupkg",
+      "package_sha256": "15e512b49f040efa2c4d3eb9d568961345f5f6b13d42a350a4b9a191bfe7fab3",
+      "member": "lib/net462/System.Runtime.CompilerServices.Unsafe.dll",
+      "dll_sha256": "f53a6eb5584e23afd094a0ad301a13913eec0f58fdbfd854f3ee0ab69c76f8e4",
+      "assembly_version": "6.0.2.0",
+      "target": "System.Runtime.CompilerServices.Unsafe.dll",
+      "framework": "net462",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/dotnet/maintenance-packages",
+        "commit": "ab95a1f103b49919ba02577a99f3173405bb50ca"
+      },
+      "dependencies": [],
+      "licenses": [
+        {
+          "path": "licenses/unsafe-LICENSE.TXT",
+          "url": "https://raw.githubusercontent.com/dotnet/maintenance-packages/ab95a1f103b49919ba02577a99f3173405bb50ca/LICENSE",
+          "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.Bcl.Memory",
+      "version": "9.0.14",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.bcl.memory/9.0.14/microsoft.bcl.memory.9.0.14.nupkg",
+      "package_sha256": "ff561593e96bc1fabb869af54f95118b3cd4f6478c10ee585627dabc48bd73c3",
+      "member": "lib/net462/Microsoft.Bcl.Memory.dll",
+      "dll_sha256": "410b2030fd6be853d35b9a20742e9fcfb78a67239881c9d65d6e1bbe34ec5f76",
+      "assembly_version": "9.0.0.14",
+      "target": "Microsoft.Bcl.Memory.dll",
+      "framework": "net462",
+      "repository": {
+        "type": "git",
+        "url": "https://github.com/dotnet/runtime",
+        "commit": "19c07820cb72aafc554c3bc8fe3c54010f5123f0"
+      },
+      "dependencies": [
+        {
+          "id": "System.Memory",
+          "version": "4.5.5",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "System.Runtime.CompilerServices.Unsafe",
+          "version": "6.0.0",
+          "exclude": "Build,Analyzers"
+        },
+        {
+          "id": "System.ValueTuple",
+          "version": "4.5.0",
+          "exclude": "Build,Analyzers"
+        }
+      ],
+      "licenses": [
+        {
+          "path": "licenses/microsoft.bcl.memory.9.0.14-LICENSE.TXT",
+          "source_member": "LICENSE.TXT",
+          "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "path": "licenses/microsoft.bcl.memory.9.0.14-THIRD-PARTY-NOTICES.TXT",
+          "source_member": "THIRD-PARTY-NOTICES.TXT",
+          "sha256": "40686c6447a7d5b5d3693068e4571b5f483d7ed335aeee773ef662440de4c5d5"
+        }
+      ]
+    },
+    {
+      "id": "System.ValueTuple",
+      "version": "4.5.0",
+      "url": "https://api.nuget.org/v3-flatcontainer/system.valuetuple/4.5.0/system.valuetuple.4.5.0.nupkg",
+      "package_sha256": "9e21fa9767d4e76bc0cee065c1d40cc34384a114bfec4d70e6c981168a926802",
+      "member": "lib/net461/System.ValueTuple.dll",
+      "dll_sha256": "e4774aead2793f440e0ced6c097048423d118e0b6ed238c6fe5b456acb07817f",
+      "assembly_version": "4.0.3.0",
+      "target": "System.ValueTuple.dll",
+      "framework": "net461",
+      "repository": null,
+      "dependencies": [],
+      "licenses": [
+        {
+          "path": "licenses/system.valuetuple.4.5.0-LICENSE.TXT",
+          "source_member": "LICENSE.TXT",
+          "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+        },
+        {
+          "path": "licenses/system.valuetuple.4.5.0-THIRD-PARTY-NOTICES.TXT",
+          "source_member": "THIRD-PARTY-NOTICES.TXT",
+          "sha256": "7864a01e2fdef7e8fdf81b906efb1466f083206affea7ba7e6dadea429754765"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "lib/System.Memory.dll",
+      "target": "System.Memory.dll",
+      "sha256": "ce1952072d539a4f0abb3706d60ca560c4d380bafeaa3409d277990e89f2312c"
+    },
+    {
+      "path": "licenses/maintenance-LICENSE.TXT",
+      "target": "licenses/kks-runtime/maintenance-LICENSE.TXT",
+      "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+    },
+    {
+      "path": "lib/System.Buffers.dll",
+      "target": "System.Buffers.dll",
+      "sha256": "2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3"
+    },
+    {
+      "path": "lib/System.Numerics.Vectors.dll",
+      "target": "System.Numerics.Vectors.dll",
+      "sha256": "20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9"
+    },
+    {
+      "path": "lib/System.Runtime.CompilerServices.Unsafe.dll",
+      "target": "System.Runtime.CompilerServices.Unsafe.dll",
+      "sha256": "f53a6eb5584e23afd094a0ad301a13913eec0f58fdbfd854f3ee0ab69c76f8e4"
+    },
+    {
+      "path": "licenses/unsafe-LICENSE.TXT",
+      "target": "licenses/kks-runtime/unsafe-LICENSE.TXT",
+      "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+    },
+    {
+      "path": "lib/Microsoft.Bcl.Memory.dll",
+      "target": "Microsoft.Bcl.Memory.dll",
+      "sha256": "410b2030fd6be853d35b9a20742e9fcfb78a67239881c9d65d6e1bbe34ec5f76"
+    },
+    {
+      "path": "licenses/microsoft.bcl.memory.9.0.14-LICENSE.TXT",
+      "target": "licenses/kks-runtime/microsoft.bcl.memory.9.0.14-LICENSE.TXT",
+      "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+    },
+    {
+      "path": "licenses/microsoft.bcl.memory.9.0.14-THIRD-PARTY-NOTICES.TXT",
+      "target": "licenses/kks-runtime/microsoft.bcl.memory.9.0.14-THIRD-PARTY-NOTICES.TXT",
+      "sha256": "40686c6447a7d5b5d3693068e4571b5f483d7ed335aeee773ef662440de4c5d5"
+    },
+    {
+      "path": "lib/System.ValueTuple.dll",
+      "target": "System.ValueTuple.dll",
+      "sha256": "e4774aead2793f440e0ced6c097048423d118e0b6ed238c6fe5b456acb07817f"
+    },
+    {
+      "path": "licenses/system.valuetuple.4.5.0-LICENSE.TXT",
+      "target": "licenses/kks-runtime/system.valuetuple.4.5.0-LICENSE.TXT",
+      "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+    },
+    {
+      "path": "licenses/system.valuetuple.4.5.0-THIRD-PARTY-NOTICES.TXT",
+      "target": "licenses/kks-runtime/system.valuetuple.4.5.0-THIRD-PARTY-NOTICES.TXT",
+      "sha256": "7864a01e2fdef7e8fdf81b906efb1466f083206affea7ba7e6dadea429754765"
+    }
+  ],
+  "closure": [
+    {
+      "consumer": "Microsoft.Bcl.Memory",
+      "dependency": "System.ValueTuple",
+      "referenced_version": "4.0.3.0",
+      "packaged_version": "4.0.3.0",
+      "type_reference_count": 2,
+      "member_reference_count": 2,
+      "member_examples": [
+        "System.Runtime.CompilerServices.TupleElementNamesAttribute..ctor",
+        "System.ValueTuple`2<System.Int32,System.Int32>..ctor"
+      ]
+    },
+    {
+      "consumer": "Microsoft.Bcl.Memory",
+      "dependency": "System.Memory",
+      "referenced_version": "4.0.1.2",
+      "packaged_version": "4.0.4.0",
+      "type_reference_count": 5,
+      "member_reference_count": 42,
+      "member_examples": [
+        "System.ReadOnlySpan`1<!!1>.get_IsEmpty",
+        "System.Runtime.InteropServices.MemoryMarshal.GetReference",
+        "System.Runtime.InteropServices.MemoryMarshal.GetReference",
+        "System.ReadOnlySpan`1<!!1>.get_Length",
+        "System.Span`1<System.Byte>.get_Length",
+        "System.Span`1<System.Byte>.get_IsEmpty"
+      ]
+    },
+    {
+      "consumer": "Microsoft.Bcl.Memory",
+      "dependency": "System.Runtime.CompilerServices.Unsafe",
+      "referenced_version": "6.0.0.0",
+      "packaged_version": "6.0.2.0",
+      "type_reference_count": 1,
+      "member_reference_count": 5,
+      "member_examples": [
+        "System.Runtime.CompilerServices.Unsafe.SizeOf",
+        "System.Runtime.CompilerServices.Unsafe.Add",
+        "System.Runtime.CompilerServices.Unsafe.Add",
+        "System.Runtime.CompilerServices.Unsafe.Subtract",
+        "System.Runtime.CompilerServices.Unsafe.WriteUnaligned"
+      ]
+    },
+    {
+      "consumer": "Microsoft.Bcl.Memory",
+      "dependency": "System.Buffers",
+      "referenced_version": "4.0.3.0",
+      "packaged_version": "4.0.5.0",
+      "type_reference_count": 1,
+      "member_reference_count": 3,
+      "member_examples": [
+        "System.Buffers.ArrayPool`1<System.Byte>.get_Shared",
+        "System.Buffers.ArrayPool`1<System.Byte>.Rent",
+        "System.Buffers.ArrayPool`1<System.Byte>.Return"
+      ]
+    },
+    {
+      "consumer": "System.Memory",
+      "dependency": "System.Numerics.Vectors",
+      "referenced_version": "4.1.6.0",
+      "packaged_version": "4.1.6.0",
+      "type_reference_count": 2,
+      "member_reference_count": 18,
+      "member_examples": [
+        "System.Numerics.Vector.get_IsHardwareAccelerated",
+        "System.Numerics.Vector`1<System.Byte>.get_Count",
+        "System.Numerics.Vector.Equals",
+        "System.Numerics.Vector`1<System.Byte>.get_Zero",
+        "System.Numerics.Vector`1<System.Byte>.Equals",
+        "System.Numerics.Vector.BitwiseOr"
+      ]
+    },
+    {
+      "consumer": "System.Memory",
+      "dependency": "System.Runtime.CompilerServices.Unsafe",
+      "referenced_version": "6.0.1.0",
+      "packaged_version": "6.0.2.0",
+      "type_reference_count": 1,
+      "member_reference_count": 17,
+      "member_examples": [
+        "System.Runtime.CompilerServices.Unsafe.As",
+        "System.Runtime.CompilerServices.Unsafe.As",
+        "System.Runtime.CompilerServices.Unsafe.Add",
+        "System.Runtime.CompilerServices.Unsafe.AsPointer",
+        "System.Runtime.CompilerServices.Unsafe.Add",
+        "System.Runtime.CompilerServices.Unsafe.ByteOffset"
+      ]
+    },
+    {
+      "consumer": "System.Memory",
+      "dependency": "System.Buffers",
+      "referenced_version": "4.0.5.0",
+      "packaged_version": "4.0.5.0",
+      "type_reference_count": 1,
+      "member_reference_count": 3,
+      "member_examples": [
+        "System.Buffers.ArrayPool`1<!0>.get_Shared",
+        "System.Buffers.ArrayPool`1<!0>.Rent",
+        "System.Buffers.ArrayPool`1<!0>.Return"
+      ]
+    },
+    {
+      "consumer": "AssimpNetter",
+      "dependency": "System.Memory",
+      "referenced_version": "4.0.4.0",
+      "packaged_version": "4.0.4.0",
+      "type_reference_count": 4,
+      "member_reference_count": 65,
+      "member_examples": [
+        "System.ReadOnlySpan`1<!!0>..ctor",
+        "System.Span`1<!!0>..ctor",
+        "System.ReadOnlySpan`1<!!0>.CopyTo",
+        "System.ReadOnlySpan`1<!!0>..ctor",
+        "System.Span`1<!!0>..ctor",
+        "System.ReadOnlySpan`1<System.Byte>.ToArray"
+      ]
+    },
+    {
+      "consumer": "AssimpNetter",
+      "dependency": "Microsoft.Bcl.Memory",
+      "referenced_version": "9.0.0.14",
+      "packaged_version": "9.0.0.14",
+      "type_reference_count": 2,
+      "member_reference_count": 6,
+      "member_examples": [
+        "System.Index.get_IsFromEnd",
+        "System.Index.get_Value",
+        "System.Range.get_Start",
+        "System.Range.get_End",
+        "System.Index.op_Implicit",
+        "System.Range..ctor"
+      ]
+    },
+    {
+      "consumer": "AssimpNetter",
+      "dependency": "System.ValueTuple",
+      "referenced_version": "4.0.3.0",
+      "packaged_version": "4.0.3.0",
+      "type_reference_count": 3,
+      "member_reference_count": 4,
+      "member_examples": [
+        "System.Runtime.CompilerServices.TupleElementNamesAttribute..ctor",
+        "System.ValueTuple`2<System.Int32,!0>..ctor",
+        "System.ValueTuple`3<!0,!1,!2>..ctor",
+        "System.ValueTuple`2<!0,!1>..ctor"
+      ]
+    },
+    {
+      "consumer": "AssimpNetter",
+      "dependency": "System.Buffers",
+      "referenced_version": "4.0.5.0",
+      "packaged_version": "4.0.5.0",
+      "type_reference_count": 1,
+      "member_reference_count": 3,
+      "member_examples": [
+        "System.Buffers.ArrayPool`1<System.Char>.get_Shared",
+        "System.Buffers.ArrayPool`1<System.Char>.Rent",
+        "System.Buffers.ArrayPool`1<System.Char>.Return"
+      ]
+    },
+    {
+      "consumer": "AssimpNetter",
+      "dependency": "System.Runtime.CompilerServices.Unsafe",
+      "referenced_version": "6.0.2.0",
+      "packaged_version": "6.0.2.0",
+      "type_reference_count": 1,
+      "member_reference_count": 6,
+      "member_examples": [
+        "System.Runtime.CompilerServices.Unsafe.InitBlockUnaligned",
+        "System.Runtime.CompilerServices.Unsafe.SizeOf",
+        "System.Runtime.CompilerServices.Unsafe.AsRef",
+        "System.Runtime.CompilerServices.Unsafe.ReadUnaligned",
+        "System.Runtime.CompilerServices.Unsafe.Write",
+        "System.Runtime.CompilerServices.Unsafe.WriteUnaligned"
+      ]
+    },
+    {
+      "consumer": "IndexRange",
+      "dependency": "Microsoft.Bcl.Memory",
+      "referenced_version": "9.0.0.14",
+      "packaged_version": "9.0.0.14",
+      "type_reference_count": 0,
+      "member_reference_count": 0,
+      "member_examples": []
+    }
+  ],
+  "notes": [
+    "Direct AssimpNetter references exactly match packaged assembly versions. Transitive assemblies reference older API-compatible strong-name versions of Memory, Buffers and Unsafe; .NET/Unity loader binding behavior still needs Windows KKS runtime verification.",
+    "No System.Resources.ResourceManager.dll is required by this managed dependency closure.",
+    "IndexRange from upstream is a System.Index / System.Range facade forwarding to Microsoft.Bcl.Memory."
+  ]
+}

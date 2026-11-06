@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="IllusionLibs.BepInEx.Harmony" Version="2.9.0" GeneratePathProperty="true" ExcludeAssets="all" />
+    <Reference Include="0Harmony" HintPath="$(PkgIllusionLibs_BepInEx_Harmony)/lib/net35/0Harmony.dll" />
+    <Compile Include="../../src/AssetImport/AssetImport.PhysicsEnvironment*.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.PhysicsChainSettings.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.PhysicsJoint*.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.NaturalDrapePatch.cs" Link="NaturalDrapePatch.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.Asset.cs" Link="Asset.cs" />
+    <Compile Include="../AssetImport.Compatibility.Tests/MetadataAssembly.cs" Link="MetadataAssembly.cs" />
+  </ItemGroup>
+  <Import Project="../GameMetadataFixtures.props" />
+</Project>

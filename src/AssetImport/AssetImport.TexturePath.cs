@@ -31,7 +31,7 @@ namespace AssetImport
 
         public bool PathOkay()
         {
-            return System.IO.File.Exists(_path) && (File.EndsWith(".png") || File.EndsWith(".jpg"));
+            return System.IO.File.Exists(_path) && TextureFileResolver.IsSupportedImage(_path);
         }
     }
 }

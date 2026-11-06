@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DefineConstants>KK</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/AssetImport/AssetImport.Import.Hierarchy.cs" Link="Import.Hierarchy.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.BoneNode.cs" Link="BoneNode.cs" />
+    <Compile Include="../../src/AssetImport/AssetImport.LegacyMeshGeometry.cs" Link="LegacyMeshGeometry.cs" />
+  </ItemGroup>
+</Project>
