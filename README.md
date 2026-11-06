@@ -17,6 +17,14 @@ This project extends [Njaecha/AssetImport](https://github.com/Njaecha/AssetImpor
 - Decode BMP, TGA, and common DDS textures, with optional `.cube` LUT conversion for diffuse colors.
 - Prepare textures asynchronously and apply them through MaterialEditor.
 
+## Limitations (because of KK Backport)
+
+- assimp library downgraded to version 5.0.0 (upstream uses 6.0.4.0)
+  - uses *beta* version of AssimptNet last updated 2020 
+- blendshape processing in CPU instead of shader
+  - with model that feature a lot of blendshapes this can increase **model load time from seconds to hours**
+- (more?)
+
 Imported models remain items or accessories; they do not become native game characters with clothing slots.
 
 ## Requirements

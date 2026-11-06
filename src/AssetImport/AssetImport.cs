@@ -22,14 +22,17 @@ namespace AssetImport
     public class AssetImport : BaseUnityPlugin
     {
 #if KK
-        public const string PluginName = "KK_AssetImport";
+        // TODO: PLEASE USE A DIFFERENT NAME AND DO NOT DISTRIBUTE UNDER THE NAME "AssetImport"
+        public const string PluginName = "<< NEW NAME >>";
         // Keep the supported minimum independent of future build-reference upgrades.
         internal const string MinimumMaterialEditorVersion = "4.0.3";
 #else
-        public const string PluginName = "KKS_AssetImport";
+        // TODO: PLEASE USE A DIFFERENT NAME AND DO NOT DISTRIBUTE UNDER THE NAME "AssetImport"
+        public const string PluginName = "<< NEW NAME >>";
         internal const string MinimumMaterialEditorVersion = "3.13.5";
 #endif
-        public const string GUID = "org.njaecha.plugins.assetimport";
+        // TODO: PLEASE USE A NEW GUID AND DO NOT DISTRIBUTE UNDER THE GUID OF MY PROJECT
+        public const string GUID = "<< NEW GUID >>";
         public const string Version = "4.2.8";
 
         internal new static ManualLogSource Logger;
